@@ -1,0 +1,1521 @@
+using Infragistics.WebUI.WebDataInput;
+using Infragistics.WebUI.WebSchedule;
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Data;
+using System.Data.SqlClient;
+using System.Drawing;
+using System.Web;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+
+public partial class OnlineAppoinmentBooking : System.Web.UI.Page
+{
+    string constr = ConfigurationManager.ConnectionStrings["Reg_ConnectionString"].ConnectionString;
+    //ENC As New Encryption - Commented as Encryption class not provided
+    // string Pt_Reg_No = ""; // Unused - commented to suppress CS0414
+    //User_page_Authentication userAuthen = new User_page_Authentication(); - Commented as class not provided
+    //Search_Panel_New searchpanel1 = new Search_Panel_New(); - Commented as class not provided
+    //DrawPanel sp = new DrawPanel(); - Commented as class not provided
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        if (!IsPostBack)
+        {
+            WebDateTimeEdit_DOB.AutoPostBack = false;
+
+            textboxage.Attributes.Add("onblur", "showAgedob()");
+            textboxage.Attributes.Add("onkeyup", "showAgedob()");
+            textboxage.Attributes.Add("onfocus", "showAgedobfocus()");
+
+            DropDownListBIndicator.Attributes.Add("onchange", "showAgedobfocus()");
+
+            try
+            {
+                Session.Timeout = 60;
+            }
+            catch (Exception ex)
+            {
+                Response.Write(ex.Message);
+            }
+
+            // Initialize session variables if they don't exist
+            if (Session["Doctor_ID"] == null)
+            {
+                Session["Doctor_ID"] = 0;
+            }
+
+            if (Session["Doctor_App_Slot_Id"] == null)
+            {
+                Session["Doctor_App_Slot_Id"] = 0;
+            }
+
+            if (Session["AppType"] == null)
+            {
+                Session["AppType"] = "Doctor";
+            }
+
+            if (Session["RegNo"] == null)
+            {
+                Session["RegNo"] = "";
+            }
+
+            // Load basic settings
+            if (WebDateTimeEdit_DOB != null)
+            {
+                WebDateTimeEdit_DOB.MaxValue = DateTime.Today;
+            }
+
+            DropDownList_City.DataBind();
+
+            // Check if DropDownList_City has items before setting SelectedValue
+            if (DropDownList_City.Items.Count > 0)
+            {
+                try
+                {
+                    DropDownList_City.SelectedValue = "21";
+                }
+                catch
+                {
+                    // Value 21 might not exist, handle gracefully
+                }
+            }
+
+            WebDateChooser_AppointmentDate.Value = DateTime.Now;
+
+            // FIXED: Properly cast the Value property to DateTime
+            DateTime dte = DateTime.MinValue;
+            if (WebDateChooser_AppointmentDate.Value != null)
+            {
+                dte = (DateTime)WebDateChooser_AppointmentDate.Value;
+            }
+
+            HiddenFieldAppointmentDateTime.Value = WebDateChooser_AppointmentDate.Value != null ?
+                                                   WebDateChooser_AppointmentDate.Value.ToString() :
+                                                   DateTime.Now.ToString();
+
+            if (dte != DateTime.MinValue)
+            {
+                if (dte.Day >= 1 && dte.Day <= 9)
+                {
+                    HiddenField_AppTime.Value = dte.Month.ToString() + "/0" + dte.Day.ToString() + "/" + dte.Year.ToString();
+                }
+                else
+                {
+                    HiddenField_AppTime.Value = dte.Month.ToString() + "/" + dte.Day.ToString() + "/" + dte.Year.ToString();
+                }
+
+                HiddenField_DayofWeek.Value = dte.DayOfWeek.ToString();
+            }
+
+            // Load dropdowns in correct order
+            LoadDropdown(); // Load doctors/departments
+
+            // Set doctor from session if exists
+            if (Session["Doctor_ID"] != null && Convert.ToInt32(Session["Doctor_ID"]) > 0)
+            {
+                try
+                {
+                    DropDownListDoctor_id.SelectedValue = Session["Doctor_ID"].ToString();
+                    DropDownListDoctor_id.Enabled = false;
+                }
+                catch (Exception)
+                {
+                    // Doctor not found in list
+                }
+            }
+
+            // Load sessions only if doctor is selected
+            if (DropDownListDoctor_id.SelectedValue != "" && DropDownListDoctor_id.SelectedValue != "0")
+            {
+                bindSession();
+                BindServices();
+
+                // Load time slots only if session is available
+                if (ddlSessions.Items.Count > 0)
+                {
+                    Dropdowntimeslot();
+                }
+            }
+
+            // Handle appointment date and slot from session
+            if (Session["AppDate"] != null)
+            {
+                try
+                {
+                    WebDateChooser_AppointmentDate.Value = Convert.ToDateTime(Session["AppDate"]);
+                    WebDateChooser_AppointmentDate.Enabled = false;
+                    HiddenFieldAppointmentDateTime.Value = WebDateChooser_AppointmentDate.Value != null ?
+                                                           WebDateChooser_AppointmentDate.Value.ToString() :
+                                                           DateTime.Now.ToString();
+
+                    // FIXED: Properly cast for dte1
+                    DateTime dte1 = DateTime.MinValue;
+                    if (WebDateChooser_AppointmentDate.Value != null)
+                    {
+                        dte1 = (DateTime)WebDateChooser_AppointmentDate.Value;
+                    }
+
+                    if (dte1 != DateTime.MinValue)
+                    {
+                        HiddenField_DayofWeek.Value = dte1.DayOfWeek.ToString();
+
+                        if (dte1.Day >= 1 && dte1.Day <= 9)
+                        {
+                            HiddenField_AppTime.Value = dte1.Month.ToString() + "/0" + dte1.Day.ToString() + "/" + dte1.Year.ToString();
+                        }
+                        else
+                        {
+                            HiddenField_AppTime.Value = dte1.Month.ToString() + "/" + dte1.Day.ToString() + "/" + dte1.Year.ToString();
+                        }
+                    }
+
+                    // Reload sessions and slots for the new date
+                    if (DropDownListDoctor_id.SelectedValue != "" && DropDownListDoctor_id.SelectedValue != "0")
+                    {
+                        bindSession();
+                        if (ddlSessions.Items.Count > 0)
+                        {
+                            Dropdowntimeslot();
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    // Handle exception silently
+                }
+            }
+
+            // Set time slot if session exists
+            if (Session["Doctor_App_Slot_Id"] != null && Convert.ToInt32(Session["Doctor_App_Slot_Id"]) > 0)
+            {
+                try
+                {
+                    DropDownList_TimeSlot.SelectedValue = Session["Doctor_App_Slot_Id"].ToString();
+                    DropDownList_TimeSlot.Enabled = false;
+                }
+                catch (Exception)
+                {
+                    // Handle exception silently
+                }
+            }
+
+            // Load patient data if RegNo exists
+            if (Session["RegNo"] != null && Session["RegNo"].ToString() != "")
+            {
+                HiddenField_Reg_no.Value = Session["RegNo"].ToString();
+                lblRegNo.Text = Session["RegNo"].ToString();
+            }
+        }
+
+        try
+        {
+            // Search panel setup - Commented as Search_Panel_New class not provided
+            /*
+            string[] Table_Element_Name = { "MR #.", "Patient Name", "CNIC #", "Mobile #", "Registration From Date", "Registration To Date" };
+            string[] Table_Element_Type = { "TextBox", "TextBox", "webmaskedit", "webmaskedit", "WebDateChooser", "WebDateChooser" };
+            string[] Table_Element_ID = { "TextBoxRegNo", "TextBoxPFName", "CNIC", "Mobile_No", "WebDateChooser1", "WebDateChooser2" };
+            int Table_Columns = 3;
+            searchpanel1.search_Panel_New(Panel2, Table_Columns, Table_Element_Name, Table_Element_Type, Table_Element_ID);
+            */
+
+            Session.Timeout = 60;
+        }
+        catch (Exception)
+        {
+            // Handle exception silently
+        }
+    }
+
+    protected void LoadDropdown()
+    {
+        try
+        {
+            //DbManager dbm = new DbManager(); - Commented as DbManager class not provided
+
+            DropDownListDoctor_id.Items.Clear();
+
+            if (Session["AppType"] != null && Session["AppType"].ToString() == "Dep")
+            {
+                //SqlParameter[] para2 = { new SqlParameter("@ID", 0) };
+                //DataTable dt = dbm.ExecuteDataTableWithQuery("Select SubDept_Name,SubDept_Id FROM SubDepartment ORDER BY SubDept_Name", "Basic_Data_ConnectionString", para2);
+
+                // Placeholder for actual data access
+                DataTable dt = GetDepartmentsFromDatabase();
+
+                if (dt != null && dt.Rows.Count > 0)
+                {
+                    DropDownListDoctor_id.Items.Add(new ListItem("-- Select Department --", "0"));
+
+                    foreach (DataRow row in dt.Rows)
+                    {
+                        DropDownListDoctor_id.Items.Add(new ListItem(row["SubDept_Name"].ToString(), row["SubDept_Id"].ToString()));
+                    }
+                }
+                else
+                {
+                    DropDownListDoctor_id.Items.Add(new ListItem("-- No Departments Available --", "0"));
+                }
+            }
+            else
+            {
+                //SqlParameter[] para = { new SqlParameter("@ID", 0) };
+                //DataTable dt = dbm.ExecuteDataTableWithQuery("SELECT ISNULL(EFName, '') + ' ' + ISNULL(EMName, '') + ' ' + ISNULL(ELName, '') AS Name, EmpID FROM Employee where Is_Consultant=1 ORDER BY ISNULL(EFName, '') ", "Reg_ConnectionString", para);
+
+                // Placeholder for actual data access
+                DataTable dt = GetDoctorsFromDatabase();
+
+                if (dt != null && dt.Rows.Count > 0)
+                {
+                    DropDownListDoctor_id.Items.Add(new ListItem("-- Select Doctor --", "0"));
+
+                    foreach (DataRow row in dt.Rows)
+                    {
+                        DropDownListDoctor_id.Items.Add(new ListItem(row["Name"].ToString(), row["EmpID"].ToString()));
+                    }
+                }
+                else
+                {
+                    DropDownListDoctor_id.Items.Add(new ListItem("-- No Doctors Available --", "0"));
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            lblMsg.Text = "Error loading doctors: " + ex.Message;
+            lblMsg.Visible = true;
+            lblMsg.ForeColor = Color.Red;
+        }
+    }
+
+    // Helper method to get doctors - replace with actual data access
+    private DataTable GetDoctorsFromDatabase()
+    {
+        DataTable dt = new DataTable();
+        try
+        {
+            using (SqlConnection conn = new SqlConnection(constr))
+            {
+                string query = "SELECT ISNULL(EFName, '') + ' ' + ISNULL(EMName, '') + ' ' + ISNULL(ELName, '') AS Name, EmpID FROM Employee where Is_Consultant=1 ORDER BY ISNULL(EFName, '')";
+                using (SqlDataAdapter da = new SqlDataAdapter(query, conn))
+                {
+                    da.Fill(dt);
+                }
+            }
+        }
+        catch
+        {
+            // Return empty table on error
+        }
+        return dt;
+    }
+
+    // Helper method to get departments - replace with actual data access
+    private DataTable GetDepartmentsFromDatabase()
+    {
+        DataTable dt = new DataTable();
+        try
+        {
+            using (SqlConnection conn = new SqlConnection(ConfigurationManager.ConnectionStrings["Basic_Data_ConnectionString"].ConnectionString))
+            {
+                string query = "Select SubDept_Name,SubDept_Id FROM SubDepartment ORDER BY SubDept_Name";
+                using (SqlDataAdapter da = new SqlDataAdapter(query, conn))
+                {
+                    da.Fill(dt);
+                }
+            }
+        }
+        catch
+        {
+            // Return empty table on error
+        }
+        return dt;
+    }
+
+    protected void bindSession()
+    {
+        try
+        {
+            lblSessionMsg.Text = "";
+            ddlSessions.Items.Clear();
+
+            if (DropDownListDoctor_id.SelectedValue == "" || DropDownListDoctor_id.SelectedValue == "0")
+            {
+                ddlSessions.Items.Add(new ListItem("-- Select Doctor First --", "0"));
+                lblSessionMsg.Text = "Please select doctor first";
+                lblSessionMsg.ForeColor = Color.Orange;
+                return;
+            }
+
+            //DbManager dbm = new DbManager(); - Commented as DbManager class not provided
+            string appType = (Session["AppType"] == null ? "Doctor" : Session["AppType"].ToString());
+
+            /*
+            SqlParameter[] sp = {
+                new SqlParameter("@Type", 1),
+                new SqlParameter("@Doctor_Id", Convert.ToInt32(DropDownListDoctor_id.SelectedValue)),
+                new SqlParameter("@Date", WebDateChooser_AppointmentDate.Value)
+            };
+
+            DataTable dt = dbm.ExecuteDataTable("uspGetSessionForAddWindow", "Reg_ConnectionString", sp);
+            */
+
+            // Placeholder for actual data access
+            DataTable dt = GetSessionsFromDatabase();
+
+            if (dt != null && dt.Rows.Count > 0)
+            {
+                ddlSessions.Items.Add(new ListItem("-- Select Session --", "0"));
+
+                foreach (DataRow row in dt.Rows)
+                {
+                    string sessionName = row["Session_Name"].ToString();
+                    string sessionId = row["Session_ID"].ToString();
+                    ddlSessions.Items.Add(new ListItem(sessionName, sessionId));
+                }
+
+                lblSessionMsg.Text = dt.Rows.Count + " session(s) available";
+                lblSessionMsg.ForeColor = Color.Green;
+            }
+            else
+            {
+                ddlSessions.Items.Add(new ListItem("-- No Sessions Available --", "0"));
+                lblSessionMsg.Text = "No sessions available for selected doctor";
+                lblSessionMsg.ForeColor = Color.Red;
+            }
+        }
+        catch (Exception ex)
+        {
+            lblSessionMsg.Text = "Error loading sessions: " + ex.Message;
+            lblSessionMsg.ForeColor = Color.Red;
+            ddlSessions.Items.Clear();
+            ddlSessions.Items.Add(new ListItem("-- Error Loading Sessions --", "0"));
+        }
+    }
+
+    // Helper method to get sessions - replace with actual data access
+    private DataTable GetSessionsFromDatabase()
+    {
+        DataTable dt = new DataTable();
+        try
+        {
+            using (SqlConnection conn = new SqlConnection(constr))
+            {
+                using (SqlCommand cmd = new SqlCommand("uspGetSessionForAddWindow", conn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@Type", 1);
+                    cmd.Parameters.AddWithValue("@Doctor_Id", Convert.ToInt32(DropDownListDoctor_id.SelectedValue));
+
+                    // FIXED: Properly cast the Value property for the parameter
+                    if (WebDateChooser_AppointmentDate.Value != null)
+                    {
+                        cmd.Parameters.AddWithValue("@Date", (DateTime)WebDateChooser_AppointmentDate.Value);
+                    }
+                    else
+                    {
+                        cmd.Parameters.AddWithValue("@Date", DateTime.Now);
+                    }
+
+                    using (SqlDataAdapter da = new SqlDataAdapter(cmd))
+                    {
+                        da.Fill(dt);
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // Return empty table on error
+        }
+        return dt;
+    }
+
+    public void Dropdowntimeslot()
+    {
+        try
+        {
+            lblTimeSlotMsg.Text = "";
+            DropDownList_TimeSlot.Items.Clear();
+
+            if (DropDownListDoctor_id.SelectedValue == "" || DropDownListDoctor_id.SelectedValue == "0")
+            {
+                DropDownList_TimeSlot.Items.Add(new ListItem("-- Select Doctor First --", "0"));
+                DropDownList_TimeSlot.Visible = true;
+                lblTimeSlotMsg.Text = "Please select doctor first";
+                lblTimeSlotMsg.ForeColor = Color.Orange;
+                return;
+            }
+
+            if (ddlSessions.Items.Count == 0 || ddlSessions.SelectedValue == "" || ddlSessions.SelectedValue == "0")
+            {
+                DropDownList_TimeSlot.Items.Add(new ListItem("-- Select Session First --", "0"));
+                DropDownList_TimeSlot.Visible = true;
+                lblTimeSlotMsg.Text = "Please select session first";
+                lblTimeSlotMsg.ForeColor = Color.Orange;
+                return;
+            }
+
+            //DbManager dbm = new DbManager(); - Commented as DbManager class not provided
+            string appType = (Session["AppType"] == null ? "Doctor" : Session["AppType"].ToString());
+
+            /*
+            SqlParameter[] sp = {
+                new SqlParameter("@For_Doctor", Convert.ToInt32(DropDownListDoctor_id.SelectedValue)),
+                new SqlParameter("@AppDate", Convert.ToDateTime(WebDateChooser_AppointmentDate.Value)),
+                new SqlParameter("@Session_Id", Convert.ToInt32(ddlSessions.SelectedValue)),
+                new SqlParameter("@Type", 1)
+            };
+
+            DataTable dt = dbm.ExecuteDataTable("uspGetDoctorSlotsDateWise", "Reg_ConnectionString", sp);
+            */
+
+            // Placeholder for actual data access
+            DataTable dt = GetTimeSlotsFromDatabase();
+
+            if (dt != null && dt.Rows.Count > 0)
+            {
+                DropDownList_TimeSlot.Items.Add(new ListItem("-- Select Time --", "0"));
+
+                foreach (DataRow row in dt.Rows)
+                {
+                    string slotTime = row["Slot_Time"].ToString();
+                    string slotId = row["Doctor_App_Slot_Id"].ToString();
+                    DropDownList_TimeSlot.Items.Add(new ListItem(slotTime, slotId));
+                }
+
+                DropDownList_TimeSlot.Visible = true;
+                lblTimeSlotMsg.Text = dt.Rows.Count + " slot(s) available";
+                lblTimeSlotMsg.ForeColor = Color.Green;
+            }
+            else
+            {
+                DropDownList_TimeSlot.Items.Add(new ListItem("-- No Slots Available --", "0"));
+                DropDownList_TimeSlot.Visible = true;
+                lblTimeSlotMsg.Text = "No time slots available for selected date and session";
+                lblTimeSlotMsg.ForeColor = Color.Red;
+            }
+        }
+        catch (Exception ex)
+        {
+            lblTimeSlotMsg.Text = "Error loading slots: " + ex.Message;
+            lblTimeSlotMsg.ForeColor = Color.Red;
+            DropDownList_TimeSlot.Items.Clear();
+            DropDownList_TimeSlot.Items.Add(new ListItem("-- Error Loading Slots --", "0"));
+            DropDownList_TimeSlot.Visible = true;
+        }
+    }
+
+    // Helper method to get time slots - replace with actual data access
+    private DataTable GetTimeSlotsFromDatabase()
+    {
+        DataTable dt = new DataTable();
+        try
+        {
+            using (SqlConnection conn = new SqlConnection(constr))
+            {
+                using (SqlCommand cmd = new SqlCommand("uspGetDoctorSlotsDateWise", conn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@For_Doctor", Convert.ToInt32(DropDownListDoctor_id.SelectedValue));
+
+                    // FIXED: Properly cast the Value property
+                    if (WebDateChooser_AppointmentDate.Value != null)
+                    {
+                        cmd.Parameters.AddWithValue("@AppDate", (DateTime)WebDateChooser_AppointmentDate.Value);
+                    }
+                    else
+                    {
+                        cmd.Parameters.AddWithValue("@AppDate", DateTime.Now);
+                    }
+
+                    cmd.Parameters.AddWithValue("@Session_Id", Convert.ToInt32(ddlSessions.SelectedValue));
+                    cmd.Parameters.AddWithValue("@Type", 1);
+
+                    using (SqlDataAdapter da = new SqlDataAdapter(cmd))
+                    {
+                        da.Fill(dt);
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // Return empty table on error
+        }
+        return dt;
+    }
+
+    protected void DropDownListDoctor_id_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        // Clear dependent dropdowns
+        ddlSessions.Items.Clear();
+        DropDownList_TimeSlot.Items.Clear();
+        DropDownList_Services.Items.Clear();
+
+        // FIXED: Properly cast the Value property
+        DateTime dte = DateTime.MinValue;
+        if (WebDateChooser_AppointmentDate.Value != null)
+        {
+            dte = (DateTime)WebDateChooser_AppointmentDate.Value;
+        }
+
+        HiddenFieldAppointmentDateTime.Value = WebDateChooser_AppointmentDate.Value != null ?
+                                               WebDateChooser_AppointmentDate.Value.ToString() :
+                                               DateTime.Now.ToString();
+
+        if (dte != DateTime.MinValue)
+        {
+            if (dte.Day >= 1 && dte.Day <= 9)
+            {
+                HiddenField_AppTime.Value = dte.Month.ToString() + "/0" + dte.Day.ToString() + "/" + dte.Year.ToString();
+            }
+            else
+            {
+                HiddenField_AppTime.Value = dte.Month.ToString() + "/" + dte.Day.ToString() + "/" + dte.Year.ToString();
+            }
+
+            HiddenField_DayofWeek.Value = dte.DayOfWeek.ToString();
+        }
+
+        // Load sessions first
+        bindSession();
+
+        // Load services
+        BindServices();
+
+        // Note: Time slots will be loaded when session is selected
+    }
+
+    protected void WebDateChooser_AppointmentDate_ValueChanged(object sender, Infragistics.WebUI.WebSchedule.WebDateChooserEventArgs e)
+    {
+        lblDateError.Text = "";
+        lblDateError.Visible = false;
+
+        DateTime selectedDate = DateTime.MinValue;
+
+        if (WebDateChooser_AppointmentDate.Value != null)
+        {
+            selectedDate = (DateTime)WebDateChooser_AppointmentDate.Value;
+        }
+
+        // âœ… STOP past date selection
+        if (selectedDate.Date < DateTime.Today)
+        {
+            lblDateError.Text = "Cannot select past date. Please select today or future date.";
+            lblDateError.Visible = true;
+
+            // reset to today
+            WebDateChooser_AppointmentDate.Value = DateTime.Today;
+
+            // stop further execution
+            return;
+        }
+
+        // Clear dependent dropdowns
+        ddlSessions.Items.Clear();
+        DropDownList_TimeSlot.Items.Clear();
+
+        HiddenField_DayofWeek.Value = selectedDate.DayOfWeek.ToString();
+
+        HiddenFieldAppointmentDateTime.Value = selectedDate.ToString();
+
+        if (selectedDate.Day >= 1 && selectedDate.Day <= 9)
+        {
+            HiddenField_AppTime.Value = selectedDate.Month + "/0" + selectedDate.Day + "/" + selectedDate.Year;
+        }
+        else
+        {
+            HiddenField_AppTime.Value = selectedDate.Month + "/" + selectedDate.Day + "/" + selectedDate.Year;
+        }
+
+        // Reload sessions
+        if (DropDownListDoctor_id.SelectedValue != "" && DropDownListDoctor_id.SelectedValue != "0")
+        {
+            bindSession();
+        }
+    }
+
+    protected void BindServices()
+    {
+        try
+        {
+            DropDownList_Services.Items.Clear();
+
+            if (DropDownListDoctor_id.SelectedValue == "" || DropDownListDoctor_id.SelectedValue == "0")
+            {
+                DropDownList_Services.Items.Add(new ListItem("-- Select Doctor First --", "0"));
+                return;
+            }
+
+            //DbManager dbm = new DbManager(); - Commented as DbManager class not provided
+            string appType = (Session["AppType"] == null ? "Doctor" : Session["AppType"].ToString());
+            int doctorId = Convert.ToInt32(DropDownListDoctor_id.SelectedValue);
+
+            /*
+            SqlParameter[] sp = {
+                new SqlParameter("@Type", 1),
+                new SqlParameter("@ID", doctorId)
+            };
+
+            DataTable dt = dbm.ExecuteDataTable("uspGetDepDoctorServices", "Basic_Data_ConnectionString", sp);
+            */
+
+            // Placeholder for actual data access
+            DataTable dt = GetServicesFromDatabase(doctorId);
+
+            if (dt != null && dt.Rows.Count > 0)
+            {
+                DropDownList_Services.Items.Add(new ListItem("-- Select Service --", "0"));
+
+                foreach (DataRow row in dt.Rows)
+                {
+                    DropDownList_Services.Items.Add(new ListItem(row["S_Name"].ToString(), row["S_ID"].ToString()));
+                }
+            }
+            else
+            {
+                DropDownList_Services.Items.Add(new ListItem("-- No Services Available --", "0"));
+            }
+        }
+        catch (Exception ex)
+        {
+            lblMsg.Text = "Error loading services: " + ex.Message;
+            lblMsg.Visible = true;
+            lblMsg.ForeColor = Color.Red;
+        }
+    }
+
+    // Helper method to get services - replace with actual data access
+    private DataTable GetServicesFromDatabase(int doctorId)
+    {
+        DataTable dt = new DataTable();
+        try
+        {
+            using (SqlConnection conn = new SqlConnection(ConfigurationManager.ConnectionStrings["Basic_Data_ConnectionString"].ConnectionString))
+            {
+                using (SqlCommand cmd = new SqlCommand("uspGetDepDoctorServices", conn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@Type", 1);
+                    cmd.Parameters.AddWithValue("@ID", doctorId);
+
+                    using (SqlDataAdapter da = new SqlDataAdapter(cmd))
+                    {
+                        da.Fill(dt);
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // Return empty table on error
+        }
+        return dt;
+    }
+
+    public void insert_data()
+    {
+        try
+        {
+            using (SqlConnection con1 = new SqlConnection(constr))
+            {
+                string qry = "INSERT_Patient_Appointment_New";
+
+                SqlCommand command1 = new SqlCommand(qry, con1);
+                command1.CommandType = CommandType.StoredProcedure;
+                con1.Open();
+
+                // @For_Doctor - int
+                int forDoc;
+                string appType = string.Empty;
+                if (Session["1"] != null)
+                {
+                    appType = Session["1"].ToString();
+                }
+
+                if (appType == "1")
+                {
+                    forDoc = 0;
+                }
+                else
+                {
+                    forDoc = Convert.ToInt32(DropDownListDoctor_id.SelectedValue);
+                }
+                command1.Parameters.AddWithValue("@For_Doctor", forDoc);
+
+                // @Complaint - varchar(50)
+                command1.Parameters.AddWithValue("@Complaint",
+                    string.IsNullOrEmpty(TextBoxComplaint.Text) ? "" : TextBoxComplaint.Text);
+
+                // @Appointmant_DateTime - datetime
+                if (WebDateChooser_AppointmentDate.Value != null)
+                {
+                    command1.Parameters.AddWithValue("@Appointmant_DateTime", (DateTime)WebDateChooser_AppointmentDate.Value);
+                }
+                else
+                {
+                    command1.Parameters.AddWithValue("@Appointmant_DateTime", DateTime.Now);
+                }
+
+                // @Booking_Datetime - datetime
+                command1.Parameters.AddWithValue("@Booking_Datetime", DateTime.Now);
+
+                // @Doctor_App_Slot_Id - int
+                int slotId = Convert.ToInt32(DropDownList_TimeSlot.SelectedValue);
+                command1.Parameters.AddWithValue("@Doctor_App_Slot_Id", slotId);
+
+                // @App_Nature - varchar(50)
+                command1.Parameters.AddWithValue("@App_Nature",
+                    string.IsNullOrEmpty(DropDownList_Purpose.SelectedValue) ? "" : DropDownList_Purpose.SelectedValue);
+
+                // @App_Type - varchar(50)
+                command1.Parameters.AddWithValue("@App_Type",
+                    string.IsNullOrEmpty(DropDownList_VisitType.SelectedValue) ? "" : DropDownList_VisitType.SelectedValue);
+
+                // @CellNo - varchar(50)
+                string cellNo = (TextBoxCell1.Text + "-" + TextBoxCell2.Text).Trim('-');
+                command1.Parameters.AddWithValue("@CellNo", string.IsNullOrEmpty(cellNo) ? "" : cellNo);
+
+                // @Prefix - varchar(50)
+                command1.Parameters.AddWithValue("@Prefix",
+                    string.IsNullOrEmpty(RadioButtonListPrefix.SelectedValue) ? "" : RadioButtonListPrefix.SelectedValue);
+
+                // @PFName - varchar(50) - FIXED: Send empty string instead of NULL
+                command1.Parameters.AddWithValue("@PFName",
+                    string.IsNullOrEmpty(TextBoxPFName1.Text) ? "" : TextBoxPFName1.Text.Trim());
+
+                // @PMName - varchar(50) - FIXED: Send empty string instead of NULL
+                command1.Parameters.AddWithValue("@PMName",
+                    string.IsNullOrEmpty(TextBoxPMName.Text) ? "" : TextBoxPMName.Text.Trim());
+
+                // @PLName - varchar(50) - FIXED: Send empty string instead of NULL
+                command1.Parameters.AddWithValue("@PLName",
+                    string.IsNullOrEmpty(TextBoxPLName.Text) ? "" : TextBoxPLName.Text.Trim());
+
+                // @Email_Address - varchar(250)
+                command1.Parameters.AddWithValue("@Email_Address",
+                    string.IsNullOrEmpty(TextBox_Emailaddress.Text) ? "" : TextBox_Emailaddress.Text);
+
+                // @By_Emp_id - int (nullable) - This one CAN be NULL
+                if (Session["Emp_ID"] == null || string.IsNullOrEmpty(Session["Emp_ID"].ToString()))
+                {
+                    command1.Parameters.Add("@By_Emp_id", SqlDbType.Int).Value = DBNull.Value;
+                }
+                else
+                {
+                    command1.Parameters.Add("@By_Emp_id", SqlDbType.Int).Value = Convert.ToInt32(Session["Emp_ID"]);
+                }
+
+                // @Appointment_Time - varchar(20)
+                command1.Parameters.AddWithValue("@Appointment_Time",
+                    (DropDownList_TimeSlot.SelectedItem == null || string.IsNullOrEmpty(DropDownList_TimeSlot.SelectedItem.Text))
+                    ? "" : DropDownList_TimeSlot.SelectedItem.Text);
+
+                // @District_ID - int
+                command1.Parameters.AddWithValue("@District_ID",
+                    string.IsNullOrEmpty(DropDownList_City.SelectedValue) ? 0 : Convert.ToInt32(DropDownList_City.SelectedValue));
+
+                // @S_ID - int
+                if (!string.IsNullOrEmpty(DropDownList_Services.SelectedValue) &&
+                    DropDownList_Services.SelectedValue != "0" &&
+                    DropDownList_Services.SelectedValue != "-1")
+                {
+                    int serviceId = Convert.ToInt32(DropDownList_Services.SelectedValue);
+                    command1.Parameters.AddWithValue("@S_ID", serviceId);
+                }
+                else
+                {
+                    command1.Parameters.Add("@S_ID", SqlDbType.Int).Value = DBNull.Value;
+                }
+
+                // @DOB - datetime
+                if (WebDateTimeEdit_DOB.Value != null)
+                {
+                    command1.Parameters.AddWithValue("@DOB", (DateTime)WebDateTimeEdit_DOB.Value);
+                }
+                else
+                {
+                    command1.Parameters.Add("@DOB", SqlDbType.DateTime).Value = DBNull.Value;
+                }
+
+                // @Reg_No - varchar(50) - CRITICAL: Must be empty string for new patients
+                string regNo = lblRegNo.Text;
+                if (string.IsNullOrEmpty(regNo) || regNo.Trim() == "New Patient")
+                {
+                    command1.Parameters.AddWithValue("@Reg_No", ""); // Empty string, not NULL
+                }
+                else
+                {
+                    command1.Parameters.AddWithValue("@Reg_No", regNo.Trim());
+                }
+
+                // @PhoneNo - varchar(50)
+                string phoneNo = (TextBox_Phone_1.Text + "-" + TextBox_Phone_2.Text + "-" + TextBox_Phone_3.Text).Trim('-');
+                command1.Parameters.AddWithValue("@PhoneNo", string.IsNullOrEmpty(phoneNo) ? "" : phoneNo);
+
+                // @Referred_by - varchar(50)
+                command1.Parameters.AddWithValue("@Referred_by",
+                    string.IsNullOrEmpty(TextBox_Reference.Text) ? "" : TextBox_Reference.Text);
+
+                // @Source - varchar(50)
+                command1.Parameters.AddWithValue("@Source",
+                    (DropDownList_VisitSource.SelectedItem == null || string.IsNullOrEmpty(DropDownList_VisitSource.SelectedItem.Text))
+                    ? "" : DropDownList_VisitSource.SelectedItem.Text);
+
+                // @Remarks - varchar(MAX)
+                command1.Parameters.AddWithValue("@Remarks",
+                    string.IsNullOrEmpty(TextBox_Remarks.Text) ? "" : TextBox_Remarks.Text);
+
+                // @Session_ID - int
+                command1.Parameters.AddWithValue("@Session_ID",
+                    string.IsNullOrEmpty(ddlSessions.SelectedValue) ? 0 : Convert.ToInt32(ddlSessions.SelectedValue));
+
+                // OUTPUT PARAMETERS
+                // @App_ID - numeric(18,0) output
+                SqlParameter appIdParam = new SqlParameter("@App_ID", SqlDbType.Decimal);
+                appIdParam.Precision = 18;
+                appIdParam.Scale = 0;
+                appIdParam.Direction = ParameterDirection.Output;
+                command1.Parameters.Add(appIdParam);
+
+                // @Result - varchar(500) output
+                SqlParameter resultParam = new SqlParameter("@Result", SqlDbType.VarChar, 500);
+                resultParam.Direction = ParameterDirection.Output;
+                command1.Parameters.Add(resultParam);
+
+                // Execute the stored procedure
+                command1.ExecuteNonQuery();
+
+                // Get the output values
+                string result = string.Empty;
+                if (command1.Parameters["@Result"].Value != null && command1.Parameters["@Result"].Value != DBNull.Value)
+                {
+                    result = command1.Parameters["@Result"].Value.ToString();
+                }
+
+                object appIdValue = command1.Parameters["@App_ID"].Value;
+
+                // Validate the result
+                if (string.IsNullOrEmpty(result))
+                {
+                    lblMsg.Visible = true;
+                    lblMsg.Text = "No Result Returned from Stored Procedure";
+                    lblMsg.ForeColor = System.Drawing.Color.Red;
+                    return;
+                }
+
+                // Check if Sub_Dept_ID was found
+                if (appIdValue == null || appIdValue == DBNull.Value)
+                {
+                    lblMsg.Text = "Error: " + result + " | App_ID is NULL - Data NOT inserted!";
+                    lblMsg.ForeColor = System.Drawing.Color.Red;
+
+                    // Diagnostic query to check SubDept_ID
+                    CheckSubDeptId(con1, slotId, ref lblMsg);
+                    return;
+                }
+
+                // Handle the result
+                if (result == "Saved Successfully")
+                {
+                    string appId = appIdValue.ToString();
+
+                    DateTime d = DateTime.Now;
+                    if (WebDateChooser_AppointmentDate.Value != null)
+                    {
+                        d = (DateTime)WebDateChooser_AppointmentDate.Value;
+                    }
+
+                    string dt = d.Month.ToString("00") + "-" +
+                               d.Day.ToString("00") + "-" +
+                               d.Year.ToString() + " 00:00:00";
+
+                    Session["AppointmentDate"] = dt;
+
+                    string script = "window.open('Reports/Appointment_SlipOnline.aspx?App_ID=" + appId + "','_blank');";
+                    ClientScript.RegisterStartupScript(this.GetType(), "OpenSlipAndRedirect", script, true);
+
+                    Clear();
+                }
+                else if (result.Contains("Already Marked"))
+                {
+                    lblMsg.Visible = true;
+                    lblMsg.Text = result;
+                    lblMsg.ForeColor = System.Drawing.Color.Orange;
+                }
+                else
+                {
+                    lblMsg.Visible = true;
+                    lblMsg.Text = result;
+                    lblMsg.ForeColor = System.Drawing.Color.Red;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            lblMsg.Visible = true;
+            lblMsg.Text = "Error: " + ex.Message;
+            lblMsg.ForeColor = System.Drawing.Color.Red;
+        }
+    }
+
+    // Helper method to diagnose SubDept_ID issues
+    private void CheckSubDeptId(SqlConnection con, int slotId, ref System.Web.UI.WebControls.Label lblMsg)
+    {
+        try
+        {
+            if (con.State == ConnectionState.Closed)
+            {
+                con.Open();
+            }
+
+            using (SqlCommand checkCmd = new SqlCommand(
+                @"SELECT adts.SubDept_ID 
+              FROM Doctor_Appointment_Slot AS das 
+              INNER JOIN Admin_Doctor_Time_Slice AS adts ON das.Admin_Doctor_Time_ID = adts.Admin_Doctor_Time_ID
+              WHERE das.Doctor_App_Slot_Id = @SlotId", con))
+            {
+                checkCmd.Parameters.AddWithValue("@SlotId", slotId);
+
+                object subDeptId = checkCmd.ExecuteScalar();
+
+                if (subDeptId == null || subDeptId == DBNull.Value)
+                {
+                    lblMsg.Text += " | ERROR: Doctor_App_Slot_Id " + slotId + " has NO SubDept_ID! Check your time slot data.";
+                }
+                else
+                {
+                    // Also check Dept_ID
+                    using (SqlCommand deptCmd = new SqlCommand(
+                        @"SELECT Dept_Id FROM SubDepartment WHERE SubDept_Id = @SubDeptId", con))
+                    {
+                        deptCmd.Parameters.AddWithValue("@SubDeptId", subDeptId);
+
+                        object deptId = deptCmd.ExecuteScalar();
+
+                        lblMsg.Text += " | SubDept_ID found: " + subDeptId.ToString();
+
+                        if (deptId == null || deptId == DBNull.Value)
+                        {
+                            lblMsg.Text += " | WARNING: SubDept_ID " + subDeptId.ToString() + " has NO Dept_ID! Check SubDepartment table.";
+                        }
+                        else
+                        {
+                            lblMsg.Text += " | Dept_ID found: " + deptId.ToString();
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            lblMsg.Text += " | Diagnostic error: " + ex.Message;
+        }
+        finally
+        {
+            if (con.State == ConnectionState.Open)
+            {
+                con.Close();
+            }
+        }
+    }
+    public void Clear()
+    {
+        DropDownListDoctor_id.DataBind();
+        WebDateChooser_AppointmentDate.Value = DateTime.Now;
+
+        // FIXED: Properly cast for dte
+        DateTime dte = DateTime.MinValue;
+        if (WebDateChooser_AppointmentDate.Value != null)
+        {
+            dte = (DateTime)WebDateChooser_AppointmentDate.Value;
+        }
+
+        HiddenFieldAppointmentDateTime.Value = WebDateChooser_AppointmentDate.Value != null ?
+                                               WebDateChooser_AppointmentDate.Value.ToString() :
+                                               DateTime.Now.ToString();
+
+        if (dte != DateTime.MinValue)
+        {
+            if (dte.Day >= 1 && dte.Day <= 9)
+            {
+                HiddenField_AppTime.Value = dte.Month.ToString() + "/0" + dte.Day.ToString() + "/" + dte.Year.ToString();
+            }
+            else
+            {
+                HiddenField_AppTime.Value = dte.Month.ToString() + "/" + dte.Day.ToString() + "/" + dte.Year.ToString();
+            }
+            HiddenField_DayofWeek.Value = dte.DayOfWeek.ToString();
+        }
+
+        Dropdowntimeslot();
+
+        if (DropDownList_TimeSlot.Items.Count == 0)
+        {
+            DropDownList_TimeSlot.Visible = false;
+        }
+        else
+        {
+            DropDownList_TimeSlot.Visible = true;
+        }
+        Dropdowntimeslot(); // This appears twice in original, keeping as is
+        TextBox_Emailaddress.Text = "";
+        TextBoxCell1.Text = "";
+        TextBoxCell2.Text = "";
+        TextBoxComplaint.Text = "";
+        TextBoxPFName1.Text = "";
+        TextBoxPMName.Text = "";
+        TextBoxPLName.Text = "";
+
+        if (DropDownList_Purpose.Items.Count > 0)
+        {
+            try
+            {
+                DropDownList_Purpose.SelectedValue = "";
+            }
+            catch
+            {
+                // Handle if value doesn't exist
+            }
+        }
+
+        WebDateTimeEdit_DOB.Value = null;
+        textboxage.Text = "";
+        TextBox_Reference.Text = "";
+        TextBox_Remarks.Text = "";
+        TextBox_Phone_1.Text = "";
+        TextBox_Phone_2.Text = "";
+        TextBox_Phone_3.Text = "";
+        HfAppointmentId.Value = "0";
+    }
+
+    protected void GridViewSearch_Sorting(object sender, GridViewSortEventArgs e)
+    {
+        DataTable dtGridData = ViewState["dt"] as DataTable;
+        if (dtGridData != null)
+        {
+            DataView dvGridDataView = dtGridData.DefaultView;
+            string strSortOrder = "";
+            if (ViewState["SortOrder"] == null)
+            {
+                ViewState["SortOrder"] = "asc";
+            }
+            if (ViewState["SortOrder"].ToString() == "asc")
+            {
+                ViewState["SortOrder"] = "desc";
+                strSortOrder = "desc";
+            }
+            else if (ViewState["SortOrder"].ToString() == "desc")
+            {
+                ViewState["SortOrder"] = "asc";
+                strSortOrder = "asc";
+            }
+            dvGridDataView.Sort = e.SortExpression + " " + strSortOrder;
+            dtGridData = dvGridDataView.ToTable();
+
+            GridViewSearch.DataSource = dtGridData;
+            GridViewSearch.DataBind();
+        }
+    }
+
+    protected void LinkButton1_Click(object sender, EventArgs e)
+    {
+        LinkButton temp = sender as LinkButton;
+        GridViewRow gvRow = temp.NamingContainer as GridViewRow;
+        HiddenField prefix = gvRow.FindControl("hdfPrefix") as HiddenField;
+        HiddenField name = gvRow.FindControl("hdfPatientName") as HiddenField;
+        HiddenField dob = gvRow.FindControl("hdfDob") as HiddenField;
+        HiddenField mobileNo = gvRow.FindControl("hdfMobileNo") as HiddenField;
+        HiddenField cnic = gvRow.FindControl("hdfCNIC") as HiddenField;
+        HiddenField age = gvRow.FindControl("hdfAge") as HiddenField;
+        Label regNo = gvRow.FindControl("lblRegNo") as Label;
+        HiddenField appointmentId = gvRow.FindControl("HfAppId") as HiddenField;
+        //HiddenField Time = gvRow.FindControl("HfTime") as HiddenField;
+
+        if (appointmentId != null)
+        {
+            HfAppointmentId.Value = appointmentId.Value;
+        }
+
+        Label lbl_VisitNo = gvRow.FindControl("lblVisitNo") as Label;
+        if (lbl_VisitNo != null)
+        {
+            hfPayID.Value = lbl_VisitNo.Text;
+        }
+
+        if (prefix != null && !string.IsNullOrEmpty(prefix.Value))
+        {
+            if (prefix.Value.Length > 1)
+            {
+                try
+                {
+                    RadioButtonListPrefix.SelectedValue = prefix.Value;
+                }
+                catch
+                {
+                    // Value might not exist in RadioButtonList
+                }
+            }
+        }
+
+        if (regNo != null && !string.IsNullOrEmpty(regNo.Text))
+        {
+            if (regNo.Text.Length > 1)
+            {
+                HiddenField_Reg_no.Value = regNo.Text;
+                lblRegNo.Text = regNo.Text;
+            }
+        }
+
+        if (name != null && !string.IsNullOrEmpty(name.Value))
+        {
+            TextBoxPFName1.Text = name.Value;
+        }
+
+        if (dob != null && !string.IsNullOrEmpty(dob.Value))
+        {
+            if (dob.Value.Length > 1)
+            {
+                try
+                {
+                    // FIXED: Properly cast for WebDateTimeEdit_DOB.Value
+                    WebDateTimeEdit_DOB.Value = Convert.ToDateTime(dob.Value);
+                    //textboxage.Text = age.Value.Replace("Y", "").Trim();
+                }
+                catch
+                {
+                    // Handle date conversion error
+                }
+            }
+        }
+
+        if (mobileNo != null && !string.IsNullOrEmpty(mobileNo.Value))
+        {
+            if (mobileNo.Value.Length > 2)
+            {
+                try
+                {
+                    string mobileClean = mobileNo.Value.ToString().Replace("-", "");
+                    if (mobileClean.Length >= 11)
+                    {
+                        TextBoxCell1.Text = mobileClean.Substring(0, 4);
+                        TextBoxCell2.Text = mobileClean.Substring(4, 7);
+                    }
+                }
+                catch (Exception)
+                {
+                    // Handle substring error
+                }
+            }
+        }
+
+        //SqlDataSourcePatient.SelectParameters("date").DefaultValue = WebDateChooser_AppointmentDate.Value.ToString();
+        GridView2.DataBind();
+    }
+
+    protected void btnTodayPatients_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            using (SqlConnection conn = new SqlConnection(constr))
+            {
+                SqlCommand cmd = new SqlCommand("Search_Patient_For_FollowUpAppointment", conn);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@DoctorId", Session["Doctor_ID"]);
+
+                DataSet dtaset = new DataSet();
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                da.Fill(dtaset);
+
+                GridViewSearch.DataSource = dtaset.Tables[0];
+                GridViewSearch.AutoGenerateColumns = false;
+                GridViewSearch.DataBind();
+                ViewState["dt"] = dtaset.Tables[0];
+
+                GridViewSearch.DataSource = dtaset.Tables[0]; // This appears twice in original, keeping as is
+                GridViewSearch.AutoGenerateColumns = false;
+                GridViewSearch.DataBind();
+
+                if (dtaset.Tables[0].Rows.Count == 1)
+                {
+                    HiddenField_Reg_no.Value = dtaset.Tables[0].Rows[0]["RegNo"].ToString();
+                    lblRegNo.Text = dtaset.Tables[0].Rows[0]["RegNo"].ToString();
+
+                    try
+                    {
+                        RadioButtonListPrefix.SelectedValue = dtaset.Tables[0].Rows[0]["Prefix"].ToString();
+                    }
+                    catch
+                    {
+                        // Handle selection error
+                    }
+
+                    TextBoxPFName1.Text = dtaset.Tables[0].Rows[0]["PatientName"].ToString();
+
+                    try
+                    {
+                        // FIXED: Properly cast for WebDateTimeEdit_DOB.Value
+                        if (dtaset.Tables[0].Rows[0]["DateOfBirth"] != DBNull.Value)
+                        {
+                            WebDateTimeEdit_DOB.Value = Convert.ToDateTime(dtaset.Tables[0].Rows[0]["DateOfBirth"]);
+                        }
+                    }
+                    catch
+                    {
+                        // Handle date conversion error
+                    }
+
+                    if (!Convert.IsDBNull(dtaset.Tables[0].Rows[0]["MobilePhone"]) && dtaset.Tables[0].Rows[0]["MobilePhone"].ToString().Length > 5)
+                    {
+                        try
+                        {
+                            string mobileClean = dtaset.Tables[0].Rows[0]["MobilePhone"].ToString().Replace("-", "");
+                            if (mobileClean.Length >= 11)
+                            {
+                                TextBoxCell1.Text = mobileClean.Substring(0, 4);
+                                TextBoxCell2.Text = mobileClean.Substring(4, 7);
+                            }
+                        }
+                        catch
+                        {
+                            // Handle substring error
+                        }
+                    }
+
+                    //If Not IsDBNull(dtaset.Tables(0).Rows(0).Item("Email")) Then
+                    //TextBox_Emailaddress.Text = dtaset.Tables(0).Rows(0).Item("Email")
+                    //Else
+                    TextBox_Emailaddress.Text = string.Empty;
+                    //End If
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Response.Write(ex.Message);
+        }
+    }
+
+    protected void ButtonBack_Click(object sender, EventArgs e)
+    {
+        ClearForm();
+    }
+
+    private void ClearForm()
+    {
+        // Patient Info
+        TextBoxPFName1.Text = "";
+        TextBoxPMName.Text = "";
+        TextBoxPLName.Text = "";
+        TextBox_Emailaddress.Text = "";
+
+        // Cell Number
+        TextBoxCell1.Text = "";
+        TextBoxCell2.Text = "";
+
+        // City
+        if (DropDownList_City.Items.Count > 0)
+            DropDownList_City.SelectedIndex = 0;
+
+        // Doctor
+        if (DropDownListDoctor_id.Items.Count > 0)
+            DropDownListDoctor_id.SelectedIndex = 0;
+
+        // Appointment Date
+        WebDateChooser_AppointmentDate.Value =DateTime.Today;
+
+        // Session
+        if (ddlSessions.Items.Count > 0)
+            ddlSessions.SelectedIndex = 0;
+
+        // Time Slot
+        if (DropDownList_TimeSlot.Items.Count > 0)
+            DropDownList_TimeSlot.SelectedIndex = 0;
+
+        // Services
+        if (DropDownList_Services.Items.Count > 0)
+            DropDownList_Services.SelectedIndex = 0;
+
+        // Purpose
+        DropDownList_Purpose.SelectedIndex = 0;
+
+        // Visit Type
+        DropDownList_VisitType.SelectedIndex = 0;
+
+        // Visit Source
+        DropDownList_VisitSource.SelectedIndex = 0;
+
+        // Complaint
+        TextBoxComplaint.Text = "";
+
+        // DOB Infragistics control
+        WebDateTimeEdit_DOB.Value = null;
+
+        // Age
+        textboxage.Text = "";
+
+        // Indicator
+        DropDownListBIndicator.SelectedIndex = 0;
+
+        // Reference
+        TextBox_Reference.Text = "";
+
+        // Remarks
+        TextBox_Remarks.Text = "";
+
+        // Labels / Hidden fields
+        lblMsg.Text = "";
+        lblMsg.Visible = false;
+
+        HiddenField_DayofWeek.Value = "";
+        HiddenField_AppTime.Value = "";
+        HiddenFieldAppointmentDateTime.Value = "";
+        HiddenField_Reg_no.Value = "";
+
+        // Reset RadioButtonList
+        RadioButtonListPrefix.SelectedIndex = 0;
+
+        // Focus first field
+        TextBoxPFName1.Focus();
+    }
+
+
+    protected void ddlSessions_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        Dropdowntimeslot();
+    }
+
+    protected void ButtonSave_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            // Validate required fields
+            if (DropDownListDoctor_id.SelectedValue == "0" || DropDownListDoctor_id.SelectedValue == "")
+            {
+                lblMsg.Text = "Please select a doctor/department";
+                lblMsg.Visible = true;
+                lblMsg.ForeColor = Color.Red;
+                return;
+            }
+
+            if (ddlSessions.SelectedValue == "0" || ddlSessions.SelectedValue == "")
+            {
+                lblMsg.Text = "Please select a session";
+                lblMsg.Visible = true;
+                lblMsg.ForeColor = Color.Red;
+                return;
+            }
+
+            if (DropDownList_TimeSlot.SelectedValue == "0" || DropDownList_TimeSlot.SelectedValue == "")
+            {
+                lblMsg.Text = "Please select a time slot";
+                lblMsg.Visible = true;
+                lblMsg.ForeColor = Color.Red;
+                return;
+            }
+
+            if (TextBoxPFName1.Text.Trim() == "")
+            {
+                lblMsg.Text = "Please enter patient name";
+                lblMsg.Visible = true;
+                lblMsg.ForeColor = Color.Red;
+                return;
+            }
+
+            if (TextBoxCell1.Text.Trim() == "" || TextBoxCell2.Text.Trim() == "")
+            {
+                lblMsg.Text = "Please enter mobile number";
+                lblMsg.Visible = true;
+                lblMsg.ForeColor = Color.Red;
+                return;
+            }
+
+            // Call insert_data to save appointment
+            insert_data();
+        }
+        catch (Exception ex)
+        {
+            lblMsg.Text = "Error saving appointment: " + ex.Message;
+            lblMsg.Visible = true;
+            lblMsg.ForeColor = Color.Red;
+        }
+    }
+    protected void DropDownList_Services_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        // Handle service selection change
+        // You can add logic here if needed, such as updating fees, duration, etc.
+
+        // For now, just keep it empty or add a simple implementation
+        // Example: Show selected service information
+        if (DropDownList_Services.SelectedValue != "0" && !string.IsNullOrEmpty(DropDownList_Services.SelectedValue))
+        {
+            // You can add code here to handle service selection
+            // For example, display service details or update other fields
+            string selectedService = DropDownList_Services.SelectedItem.Text;
+            // Do something with selected service
+        }
+    }
+    protected void GridViewSearch_PageIndexChanging(object sender, GridViewPageEventArgs e)
+    {
+        try
+        {
+            // Set the new page index
+            GridViewSearch.PageIndex = e.NewPageIndex;
+
+            // Rebind the grid with the current data
+            DataTable dtGridData = ViewState["dt"] as DataTable;
+            if (dtGridData != null)
+            {
+                GridViewSearch.DataSource = dtGridData;
+                GridViewSearch.DataBind();
+            }
+            else
+            {
+                // If ViewState data is lost, reload from session or database
+                BindSearchGrid();
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle any errors
+            lblMsg.Text = "Error changing page: " + ex.Message;
+            lblMsg.Visible = true;
+            lblMsg.ForeColor = System.Drawing.Color.Red;
+        }
+    }
+
+    // Add this helper method to bind the search grid
+    private void BindSearchGrid()
+    {
+        try
+        {
+            // Check if we have data in ViewState
+            DataTable dtGridData = ViewState["dt"] as DataTable;
+            if (dtGridData != null)
+            {
+                GridViewSearch.DataSource = dtGridData;
+                GridViewSearch.DataBind();
+            }
+            else if (Session["SearchResults"] != null)
+            {
+                // If data is in Session, use that
+                DataTable dt = Session["SearchResults"] as DataTable;
+                if (dt != null)
+                {
+                    GridViewSearch.DataSource = dt;
+                    GridViewSearch.DataBind();
+                    ViewState["dt"] = dt; // Store back to ViewState
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            lblMsg.Text = "Error binding search grid: " + ex.Message;
+            lblMsg.Visible = true;
+            lblMsg.ForeColor = System.Drawing.Color.Red;
+        }
+    }
+}
+

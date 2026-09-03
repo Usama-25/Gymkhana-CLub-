@@ -1,0 +1,1315 @@
+<%@ Master Language="C#" AutoEventWireup="true" CodeFile="SiteSports.master.cs" Inherits="SiteSports" %>
+
+<!DOCTYPE html>
+<html lang="en">
+<head runat="server">
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+    <title>Lahore Gymkhana Club - Sports Management System</title>
+
+    <!-- Font Awesome 6 (CDN) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        /* ============================================
+           RESET & VARIABLES
+        ============================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1e3a5f;
+            --primary-dark: #0f2b48;
+            --primary-light: #e8f0fe;
+            --secondary: #c5a572;
+            --secondary-light: #f5efe3;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --sidebar-bg: #0f172a;
+            --sidebar-text: #94a3b8;
+            --sidebar-hover: #1e293b;
+            --sidebar-active: #3b82f6;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            color: var(--gray-700);
+            background: var(--gray-50);
+            overflow: hidden;
+        }
+
+        /* ============================================
+           COMPACT & BEAUTIFIED MASTER LAYOUT STYLES
+        ============================================ */
+        *, *::before, *::after {
+            box-sizing: border-box !important;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            color: var(--gray-800);
+            background: #f1f5f9;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Top Header - Compact & Sleek */
+        .top-header {
+            background: #ffffff !important;
+            border-bottom: 1px solid var(--gray-200) !important;
+            padding: 0 20px !important;
+            height: 58px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            flex-shrink: 0 !important;
+        }
+
+        /* Breadcrumb - Compact */
+        .breadcrumb {
+            background: #ffffff !important;
+            padding: 6px 20px !important;
+            border-bottom: 1px solid var(--gray-200) !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 6px !important;
+            font-size: 12px !important;
+        }
+
+        /* Footer - Compact */
+        .footer {
+            background: #ffffff !important;
+            border-top: 1px solid var(--gray-200) !important;
+            padding: 8px 20px !important;
+            font-size: 11px !important;
+            color: var(--gray-500) !important;
+            flex-shrink: 0 !important;
+        }
+
+        /* Main Content Wrapper - Optimized Spacing */
+        .content-wrapper {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 14px 18px !important;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box !important;
+        }
+
+        /* Page Header Card - Beautified */
+        .page-header-card {
+            background: #ffffff !important;
+            border-radius: 6px !important;
+            padding: 10px 16px !important;
+            border: 1px solid var(--gray-200) !important;
+            border-left: 4px solid var(--primary) !important;
+            margin-bottom: 12px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
+        }
+
+            .page-header-card h2 {
+                font-size: 16px !important;
+                font-weight: 800 !important;
+                color: var(--primary) !important;
+                margin: 0 !important;
+                display: flex !important;
+                align-items: center !important;
+            }
+
+            .page-header-card .badge,
+            .badge {
+                background: var(--secondary-light) !important;
+                color: var(--primary-dark) !important;
+                border: 1px solid var(--secondary) !important;
+                padding: 4px 10px !important;
+                border-radius: 16px !important;
+                font-size: 11px !important;
+                font-weight: 700 !important;
+            }
+
+        /* Prevent Cards & Form Rows from Overflowing & Reduce Extra Spacing */
+        .card,
+        .member-details-card,
+        .subscription-card,
+        .panel,
+        .box {
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            word-wrap: break-word !important;
+            margin-bottom: 12px !important;
+            border-radius: 6px !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            overflow: hidden !important;
+        }
+
+        .card-header {
+            background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%) !important;
+            padding: 8px 14px !important;
+            border-bottom: 1.5px solid var(--secondary) !important;
+            font-weight: 800 !important;
+            color: var(--primary-dark) !important;
+            font-size: 13px !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.5px !important;
+        }
+
+        .card-body {
+            padding: 12px 14px !important;
+            overflow-x: auto !important;
+            max-width: 100% !important;
+        }
+
+        /* Uniform Form Layout & Field Sizing */
+        .form-group {
+            margin-bottom: 10px !important;
+            width: 100% !important;
+        }
+
+        .form-group,
+        .form-group-inline,
+        .form-group-compact,
+        .member-info-row,
+        .sub-details,
+        .row,
+        .flex-row {
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+        }
+
+        label, .form-label {
+            font-size: 11.5px !important;
+            font-weight: 700 !important;
+            color: var(--primary-dark) !important;
+            margin-bottom: 3px !important;
+            display: block !important;
+            width: 100% !important;
+        }
+
+        /* All Input Fields & Dropdowns - 100% Uniform Sizing & Height */
+        input[type="text"],
+        input[type="date"],
+        input[type="datetime-local"],
+        input[type="number"],
+        input[type="email"],
+        input[type="password"],
+        input[type="search"],
+        input[type="tel"],
+        select,
+        .form-control,
+        .form-control-sm {
+            font-family: 'Inter', sans-serif !important;
+            font-size: 12.5px !important;
+            font-weight: 700 !important;
+            color: #0f172a !important;
+            background-color: #ffffff !important;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 5px !important;
+            padding: 5px 10px !important;
+            height: 34px !important;
+            width: 100% !important;
+            display: block !important;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+            outline: none !important;
+            box-sizing: border-box !important;
+            max-width: 100% !important;
+        }
+
+            /* Select / DropDownList specific uniform alignment */
+            select,
+            select.form-control,
+            select.form-control-sm {
+                height: 34px !important;
+                line-height: 34px !important;
+                padding-top: 4px !important;
+                padding-bottom: 4px !important;
+            }
+
+        textarea,
+        textarea.form-control {
+            font-family: 'Inter', sans-serif !important;
+            font-size: 12.5px !important;
+            font-weight: 700 !important;
+            color: #0f172a !important;
+            background-color: #ffffff !important;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 5px !important;
+            padding: 6px 10px !important;
+            outline: none !important;
+            box-sizing: border-box !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            height: auto !important;
+        }
+
+            input[type="text"]:focus,
+            input[type="date"]:focus,
+            input[type="datetime-local"]:focus,
+            input[type="number"]:focus,
+            input[type="email"]:focus,
+            input[type="password"]:focus,
+            input[type="search"]:focus,
+            input[type="tel"]:focus,
+            select:focus,
+            textarea:focus,
+            .form-control:focus,
+            .form-control-sm:focus {
+                border-color: var(--primary) !important;
+                box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.12) !important;
+            }
+
+        /* Checkbox & Radio Buttons */
+        input[type="checkbox"],
+        input[type="radio"] {
+            accent-color: var(--primary) !important;
+            cursor: pointer !important;
+            vertical-align: middle !important;
+        }
+
+        /* Compact & Beautified Buttons */
+        button,
+        input[type="button"],
+        input[type="submit"],
+        input[type="reset"],
+        .btn,
+        a.btn,
+        .btn-navy {
+            font-family: 'Inter', sans-serif !important;
+            font-size: 12.5px !important;
+            font-weight: 700 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 6px !important;
+            padding: 6px 14px !important;
+            height: 34px !important;
+            border-radius: 5px !important;
+            border: 1px solid transparent !important;
+            cursor: pointer !important;
+            transition: all 0.15s ease-in-out !important;
+            text-decoration: none !important;
+            line-height: 1 !important;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            white-space: nowrap !important;
+        }
+
+            /* Primary / Blue / Navy / Info Buttons - Smaller Compact Size */
+            button,
+            input[type="submit"],
+            .btn-primary,
+            .btn-navy,
+            .btn-info,
+            input[type="submit"].btn-primary,
+            input[type="button"].btn-primary,
+            input[type="button"].btn-navy,
+            input[type="button"].btn-info {
+                background-color: var(--primary) !important;
+                color: #ffffff !important;
+                border-color: var(--primary) !important;
+                font-size: 11.5px !important;
+                padding: 4px 10px !important;
+                height: 29px !important;
+                border-radius: 4px !important;
+            }
+
+                button:hover,
+                input[type="submit"]:hover,
+                .btn-primary:hover,
+                .btn-navy:hover,
+                .btn-info:hover,
+                input[type="submit"].btn-primary:hover,
+                input[type="button"].btn-primary:hover,
+                input[type="button"].btn-navy:hover,
+                input[type="button"].btn-info:hover {
+                    background-color: var(--primary-dark) !important;
+                    border-color: var(--primary-dark) !important;
+                    color: #ffffff !important;
+                    transform: translateY(-1px) !important;
+                    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15) !important;
+                }
+
+            /* Secondary Button */
+            .btn-secondary,
+            input[type="button"].btn-secondary {
+                background-color: var(--gray-200) !important;
+                color: var(--gray-800) !important;
+                border-color: var(--gray-300) !important;
+            }
+
+                .btn-secondary:hover,
+                input[type="button"].btn-secondary:hover {
+                    background-color: var(--gray-300) !important;
+                    color: var(--gray-900) !important;
+                }
+
+            /* Success Button */
+            .btn-success,
+            input[type="submit"].btn-success,
+            input[type="button"].btn-success {
+                background-color: var(--success) !important;
+                color: #ffffff !important;
+                border-color: var(--success) !important;
+            }
+
+                .btn-success:hover,
+                input[type="submit"].btn-success:hover,
+                input[type="button"].btn-success:hover {
+                    background-color: #059669 !important;
+                    border-color: #059669 !important;
+                    color: #ffffff !important;
+                }
+
+            /* Danger Button */
+            .btn-danger,
+            input[type="submit"].btn-danger,
+            input[type="button"].btn-danger {
+                background-color: var(--danger) !important;
+                color: #ffffff !important;
+                border-color: var(--danger) !important;
+            }
+
+                .btn-danger:hover,
+                input[type="submit"].btn-danger:hover,
+                input[type="button"].btn-danger:hover {
+                    background-color: #dc2626 !important;
+                    border-color: #dc2626 !important;
+                    color: #ffffff !important;
+                }
+
+            /* Warning Button */
+            .btn-warning,
+            input[type="submit"].btn-warning,
+            input[type="button"].btn-warning {
+                background-color: var(--warning) !important;
+                color: #ffffff !important;
+                border-color: var(--warning) !important;
+            }
+
+                .btn-warning:hover,
+                input[type="submit"].btn-warning:hover,
+                input[type="button"].btn-warning:hover {
+                    background-color: #d97706 !important;
+                    border-color: #d97706 !important;
+                    color: #ffffff !important;
+                }
+
+            /* Info Button */
+            .btn-info,
+            input[type="submit"].btn-info,
+            input[type="button"].btn-info {
+                background-color: var(--info) !important;
+                color: #ffffff !important;
+                border-color: var(--info) !important;
+            }
+
+                .btn-info:hover,
+                input[type="submit"].btn-info:hover,
+                input[type="button"].btn-info:hover {
+                    background-color: #2563eb !important;
+                    border-color: #2563eb !important;
+                    color: #ffffff !important;
+                }
+
+        /* Outline Buttons */
+        .btn-outline-primary {
+            background-color: transparent !important;
+            color: var(--primary) !important;
+            border: 1.5px solid var(--primary) !important;
+        }
+
+            .btn-outline-primary:hover {
+                background-color: var(--primary) !important;
+                color: #ffffff !important;
+            }
+
+        /* Button sizes */
+        .btn-sm {
+            padding: 4px 8px !important;
+            font-size: 11.5px !important;
+            height: 28px !important;
+        }
+
+        .btn-lg {
+            padding: 8px 18px !important;
+            font-size: 14px !important;
+            height: 40px !important;
+        }
+
+        /* Beautified & Dense GridViews / Tables */
+        table,
+        .grid-view,
+        .pos-grid-table,
+        .table,
+        div[id*="gv"] table,
+        table[id*="gv"],
+        table[id*="Grid"],
+        table[id*="grid"] {
+            width: 100% !important;
+            max-width: 100% !important;
+            border-collapse: collapse !important;
+            font-size: 12.5px !important;
+            background: #ffffff !important;
+            border-radius: 6px !important;
+            border: 1px solid #cbd5e1 !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
+            margin-bottom: 10px !important;
+            box-sizing: border-box !important;
+        }
+
+            table th,
+            .grid-view th,
+            .pos-grid-table th,
+            .table th,
+            table tr:first-child th,
+            table tr.header-row th,
+            table tr.header-row td {
+                background-color: var(--primary) !important;
+                color: #ffffff !important;
+                padding: 8px 10px !important;
+                text-align: left !important;
+                font-weight: 700 !important;
+                border: none !important;
+                font-size: 11.5px !important;
+                text-transform: uppercase !important;
+                letter-spacing: 0.5px !important;
+            }
+
+            table td,
+            .grid-view td,
+            .pos-grid-table td,
+            .table td {
+                padding: 6px 10px !important;
+                border-bottom: 1px solid #e2e8f0 !important;
+                border-right: 1px solid #e2e8f0 !important;
+                color: #1e293b !important;
+                vertical-align: middle !important;
+                font-weight: 600 !important;
+                font-size: 12.5px !important;
+            }
+
+            table tr:nth-child(even),
+            .grid-view tr:nth-child(even),
+            .pos-grid-table tr:nth-child(even),
+            .table tr:nth-child(even) {
+                background-color: #f8fafc !important;
+            }
+
+            table tr:hover,
+            .grid-view tr:hover,
+            .pos-grid-table tr:hover,
+            .table tr:hover {
+                background-color: var(--primary-light) !important;
+            }
+
+        /* App Layout */
+        .app {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+        }
+
+        /* ============================================
+           SIDEBAR
+        ============================================ */
+        .sidebar {
+            width: 280px;
+            background: var(--sidebar-bg);
+            color: var(--sidebar-text);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+            z-index: 100;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .sidebar-header {
+            padding: 24px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--secondary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: var(--sidebar-bg);
+        }
+
+        .logo-text h3 {
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .logo-text p {
+            font-size: 11px;
+            color: var(--secondary);
+            letter-spacing: 1px;
+        }
+
+        /* Navigation */
+        .nav-section {
+            padding: 0 16px;
+            margin-bottom: 24px;
+        }
+
+        .nav-section-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--gray-500);
+            padding: 0 12px;
+            margin-bottom: 12px;
+        }
+
+        .nav-item {
+            margin-bottom: 4px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            color: var(--sidebar-text);
+            text-decoration: none;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+            .nav-link:hover {
+                background: var(--sidebar-hover);
+                color: white;
+            }
+
+            .nav-link.active {
+                background: rgba(59, 130, 246, 0.15);
+                color: var(--sidebar-active);
+            }
+
+            .nav-link i {
+                width: 20px;
+                font-size: 16px;
+            }
+
+        .nav-label {
+            flex: 1;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .nav-arrow {
+            font-size: 12px;
+            transition: transform 0.2s;
+        }
+
+        .nav-dropdown.open .nav-arrow {
+            transform: rotate(90deg);
+        }
+
+        .dropdown-menu {
+            margin-left: 32px;
+            margin-top: 4px;
+            display: none;
+        }
+
+        .nav-dropdown.open .dropdown-menu {
+            display: block;
+        }
+
+        .dropdown-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            color: var(--sidebar-text);
+            text-decoration: none;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+            .dropdown-link:hover {
+                background: var(--sidebar-hover);
+                color: white;
+            }
+
+        /* Sidebar Footer */
+        .sidebar-footer {
+            margin-top: auto;
+            padding: 20px 16px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .logout-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            color: #f87171;
+            text-decoration: none;
+            transition: all 0.2s;
+            background: none;
+            border: none;
+            font-size: 14px;
+            width: 100%;
+            cursor: pointer;
+        }
+
+            .logout-btn:hover {
+                background: rgba(239, 68, 68, 0.1);
+                color: #fca5a5;
+            }
+
+        /* ============================================
+           MAIN CONTENT
+        ============================================ */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: var(--gray-50);
+        }
+
+        /* Top Header */
+        .top-header {
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+            padding: 0 24px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .mobile-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--gray-600);
+        }
+
+        .club-logo {
+            height: 45px;
+            width: auto;
+        }
+
+        .club-info h2 {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 2px;
+        }
+
+        .club-info p {
+            font-size: 11px;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-icon {
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            background: var(--gray-100);
+            color: var(--gray-600);
+            text-decoration: none;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+            .header-icon:hover {
+                background: var(--primary-light);
+                color: var(--primary);
+            }
+
+        .badge-dot {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 8px;
+            height: 8px;
+            background: var(--danger);
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 6px 12px 6px 8px;
+            background: var(--gray-100);
+            border-radius: 40px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+            .user-profile:hover {
+                background: var(--primary-light);
+            }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .user-details {
+            line-height: 1.3;
+        }
+
+        .user-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .user-role {
+            font-size: 10px;
+            color: var(--gray-500);
+        }
+
+        /* Breadcrumb */
+        .breadcrumb {
+            background: white;
+            padding: 8px 24px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+            .breadcrumb a {
+                color: var(--primary);
+                text-decoration: none;
+            }
+
+                .breadcrumb a:hover {
+                    text-decoration: underline;
+                }
+
+            .breadcrumb .separator {
+                color: var(--gray-400);
+            }
+
+            .breadcrumb .current {
+                color: var(--gray-600);
+                font-weight: 600;
+            }
+
+        /* Content Area */
+        .content-wrapper {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            width: 100%;
+        }
+
+        /* Footer */
+        .footer {
+            background: white;
+            border-top: 1px solid var(--gray-200);
+            padding: 10px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: var(--gray-500);
+            flex-shrink: 0;
+        }
+
+            .footer a {
+                color: var(--primary);
+                text-decoration: none;
+            }
+
+        /* Forms and Cards */
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid var(--secondary);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: var(--secondary-light);
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--secondary);
+            font-weight: 600;
+            color: var(--primary-dark);
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+            .form-group label {
+                display: block;
+                margin-bottom: 5px;
+                font-weight: 600;
+                color: var(--primary-dark);
+                font-size: 12px;
+            }
+
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--gray-300);
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+        }
+
+            .form-control:focus {
+                border-color: var(--primary);
+            }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+            .btn-primary:hover {
+                background: var(--primary-dark);
+            }
+
+        /* Grid View */
+        .grid-view {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+            .grid-view th {
+                background: var(--primary);
+                color: white;
+                padding: 12px;
+                text-align: left;
+                font-weight: 600;
+            }
+
+            .grid-view td {
+                padding: 12px;
+                border-bottom: 1px solid var(--gray-200);
+                color: var(--gray-700);
+            }
+
+            .grid-view tr:hover {
+                background-color: var(--primary-light);
+            }
+
+        /* Global Alerts */
+        .alert {
+            padding: 10px 15px;
+            border-radius: 7px;
+            margin-bottom: 14px;
+            font-size: .86rem;
+            display: none;
+        }
+
+            .alert.show {
+                display: block;
+            }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: -280px;
+                height: 100vh;
+                z-index: 1000;
+            }
+
+                .sidebar.open {
+                    left: 0;
+                }
+
+            .mobile-toggle {
+                display: block;
+            }
+
+            .club-info h2 {
+                font-size: 14px;
+            }
+
+            .user-details {
+                display: none;
+            }
+
+            .content-wrapper {
+                padding: 16px;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--gray-100);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--gray-400);
+            border-radius: 3px;
+        }
+
+            ::-webkit-scrollbar-thumb:hover {
+                background: var(--gray-500);
+            }
+
+        /* ============================================
+           PRINT STYLES
+        ============================================ */
+        @media print {
+            .sidebar, .top-header, .breadcrumb, .footer, .no-print,
+            .mobile-toggle, .header-right, .nav-section, .sidebar-footer,
+            input[type="button"], input[type="submit"], button, .btn {
+                display: none !important;
+            }
+
+            .print-only {
+                display: block !important;
+            }
+
+            body, html, .app, .main-content, .content-wrapper {
+                background: white !important;
+                color: black !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                height: auto !important;
+                overflow: visible !important;
+                display: block !important;
+            }
+
+            .content-wrapper {
+                padding: 0 !important;
+            }
+        }
+
+        .no-print {
+            display: block;
+        }
+
+        .print-only {
+            display: none;
+        }
+    </style>
+
+    <asp:ContentPlaceHolder ID="HeadContent" runat="server"></asp:ContentPlaceHolder>
+</head>
+<body>
+    <form id="form1" runat="server">
+        <asp:ScriptManager ID="ScriptManager1" runat="server"></asp:ScriptManager>
+
+        <div class="app">
+            <!-- Sidebar -->
+            <aside class="sidebar" id="sidebar">
+                <div class="sidebar-header">
+                    <div class="logo">
+                        <div class="logo-icon">
+                            <i class="fas fa-running"></i>
+                        </div>
+                        <div class="logo-text">
+                            <h3>Lahore Gymkhana</h3>
+                            <p>Sports Management</p>
+                        </div>
+                    </div>
+                </div>
+
+                <asp:UpdatePanel ID="upSidebar" runat="server" UpdateMode="Conditional">
+                    <ContentTemplate>
+                        <asp:Repeater ID="rptModules" runat="server" OnItemDataBound="rptModules_ItemDataBound">
+                            <ItemTemplate>
+                                <div class="nav-section">
+                                    <div class="nav-section-title"><%# GetModuleName(Container.DataItem) %></div>
+
+                                    <asp:Repeater ID="rptPages" runat="server">
+                                        <ItemTemplate>
+                                            <div class="nav-item">
+                                                <a href='<%# ResolveUrl("~/" + Eval("Page_URL").ToString().TrimStart('~').TrimStart('/')) %>' class="nav-link">
+                                                    <i class="fas fa-circle"></i>
+                                                    <span class="nav-label"><%# Eval("Page_Name") %></span>
+                                                </a>
+                                            </div>
+                                        </ItemTemplate>
+                                    </asp:Repeater>
+                                </div>
+                            </ItemTemplate>
+                        </asp:Repeater>
+
+                        <div style="padding: 0 16px; margin-bottom: 15px;">
+                            <asp:LinkButton ID="btnLoadMore" runat="server" CssClass="nav-link" OnClick="btnLoadMore_Click" CausesValidation="false" Style="width: 100%; border: 1px dashed var(--sidebar-text); justify-content: center; color: var(--secondary);">
+                <i class="fas fa-chevron-down"></i> Load More Modules
+                            </asp:LinkButton>
+                        </div>
+                    </ContentTemplate>
+                </asp:UpdatePanel>
+
+                <div class="sidebar-footer">
+                    <asp:LinkButton ID="lnkLogoutSidebar" runat="server" CssClass="logout-btn" OnClick="lnkLogout_Click" CausesValidation="false">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </asp:LinkButton>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <div class="main-content">
+                <header class="top-header">
+                    <div class="header-left">
+                        <button type="button" class="mobile-toggle" onclick="toggleSidebar()">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                        <div class="club-info">
+                            <h2>Lahore Gymkhana Club</h2>
+                            <p>Sports Management System</p>
+                        </div>
+                    </div>
+                    <div class="header-right">
+                        <% if (Session["AllowedSportsNames"] != null)
+                           { %>
+                        <div class="sports-badge" style="background: var(--secondary-light); color: var(--primary-dark); border: 1.5px solid var(--secondary); padding: 6px 12px; border-radius: 20px; font-size: 12px; display: flex; align-items: center; gap: 6px; max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 2px 4px rgba(0,0,0,0.05);" title="<%= Session["AllowedSportsNames"].ToString() %>">
+                            <i class="fas fa-running" style="color: var(--primary); font-size: 14px;"></i>
+                            <span style="font-weight: 800;">Access: <%= Session["AllowedSportsNames"].ToString() %></span>
+                        </div>
+                        <% } %>
+
+                        <a href="#" class="header-icon">
+                            <i class="fas fa-bell"></i>
+                            <span class="badge-dot"></span>
+                        </a>
+                        <a href="#" class="header-icon" onclick="window.print()">
+                            <i class="fas fa-print"></i>
+                        </a>
+
+                        <div class="user-profile">
+                            <div class="user-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="user-details">
+                                <div class="user-name">
+                                    <asp:Label ID="lblUser" runat="server" Text="Guest User"></asp:Label>
+                                </div>
+                                <div class="user-role">
+                                    <asp:Label ID="lblRole" runat="server" Text="Staff Member"></asp:Label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <asp:LinkButton ID="lnkLogout" runat="server" CssClass="btn" Style="padding: 8px 15px; font-size: 12px; background: var(--danger); color: white; text-decoration: none; border-radius: 6px;" OnClick="lnkLogout_Click" CausesValidation="false">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </asp:LinkButton>
+                    </div>
+                </header>
+
+                <div class="breadcrumb">
+                    <a href="MemberSubscriptions.aspx">
+                        <i class="fas fa-home"></i>Home
+                    </a>
+                    <span class="separator">/</span>
+                    <span class="current">
+                        <asp:ContentPlaceHolder ID="PageTitle" runat="server">
+                            Sports Management System
+                        </asp:ContentPlaceHolder>
+                    </span>
+                </div>
+
+                <div class="content-wrapper">
+                    <asp:ContentPlaceHolder ID="MainContent" runat="server">
+                        <!-- Child page content will appear here -->
+                    </asp:ContentPlaceHolder>
+                </div>
+
+                <footer class="footer" style="justify-content: center; gap: 20px; flex-wrap: wrap; text-align: center; background: white; margin-top: auto; z-index: 10;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-bolt" style="color: var(--secondary);"></i>
+                        <span>Powered by <strong>MegaPlus Technologies</strong></span>
+                    </div>
+                    <span style="color: var(--gray-300); display: inline-block;">|</span>
+                    <a href="#" style="color: var(--primary); text-decoration: none;">Privacy Policy</a>
+                    <span style="color: var(--gray-300);">|</span>
+                    <a href="#" style="color: var(--primary); text-decoration: none;">Support</a>
+                    <span style="color: var(--gray-300);">|</span>
+                    <span>&copy; 2026 Lahore Gymkhana Club</span>
+                </footer>
+            </div>
+        </div>
+
+        <script>
+            // Toggle navigation dropdown
+            function toggleNav(id) {
+                var element = document.getElementById(id);
+                if (element) {
+                    element.classList.toggle('open');
+                }
+            }
+
+            // Toggle mobile sidebar
+            function toggleSidebar() {
+                var sidebar = document.getElementById('sidebar');
+                if (sidebar) {
+                    sidebar.classList.toggle('open');
+                }
+            }
+
+            // Close sidebar when clicking outside on mobile
+            document.addEventListener('click', function (event) {
+                var sidebar = document.getElementById('sidebar');
+                var toggleBtn = document.querySelector('.mobile-toggle');
+
+                if (sidebar && window.innerWidth <= 768 && sidebar.classList.contains('open')) {
+                    if (!sidebar.contains(event.target) && !toggleBtn.contains(event.target)) {
+                        sidebar.classList.remove('open');
+                    }
+                }
+            });
+
+            // Highlight active menu item
+            document.addEventListener('DOMContentLoaded', function () {
+                var currentPath = window.location.pathname.toLowerCase();
+
+                document.querySelectorAll('.nav-link').forEach(function (link) {
+                    var href = link.getAttribute('href');
+                    if (href && currentPath.indexOf(href.toLowerCase()) > -1) {
+                        link.classList.add('active');
+                    }
+                });
+
+                // Idle Timeout Logic (20 minutes)
+                var idleTime = 0;
+
+                function timerIncrement() {
+                    idleTime = idleTime + 1;
+                    if (idleTime >= 20) { // 20 minutes
+                        alert("Your session has expired due to inactivity. Please login again...");
+                        window.location.href = '<%= ResolveUrl("~/Login.aspx") %>';
+                                            }
+                                        }
+
+                                        setInterval(timerIncrement, 60000); // 1 minute interval
+
+                                        function resetIdleTime() {
+                                            idleTime = 0;
+                                        }
+
+                                        document.addEventListener('mousemove', resetIdleTime);
+                                        document.addEventListener('keypress', resetIdleTime);
+                                        document.addEventListener('scroll', resetIdleTime);
+                                        document.addEventListener('click', resetIdleTime);
+                                        document.addEventListener('touchstart', resetIdleTime);
+                                    });
+        </script>
+    </form>
+</body>
+</html>

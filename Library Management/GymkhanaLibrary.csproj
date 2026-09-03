@@ -1,0 +1,376 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion></ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{4A167DE3-B8C2-4EAD-B59F-0711C4D21C5B}</ProjectGuid>
+    <ProjectTypeGuids>{349c5851-65df-11da-9384-00065b846f21};{fae04ec0-301f-11d3-bf4b-00c04f79efbc}</ProjectTypeGuids>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>GymkhanaLibrary</RootNamespace>
+    <AssemblyName>GymkhanaLibrary</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <UseIISExpress>true</UseIISExpress>
+    <Use64BitIISExpress />
+    <IISExpressSSLPort />
+    <IISExpressAnonymousAuthentication />
+    <IISExpressWindowsAuthentication />
+    <IISExpressUseClassicPipelineMode />
+    <UseGlobalApplicationHostFile />
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
+    <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugSymbols>false</DebugSymbols>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="System.Web.Services" />
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Configuration" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="01_Schema.sql" />
+    <Content Include="02_Procedures.sql" />
+    <Content Include="03_SeedData.sql" />
+    <Content Include="04_ReportProcedures.sql" />
+    <Content Include="Dashboard.aspx" />
+    <Content Include="AdminLiveDashboard.aspx" />
+    <Content Include="AttendanceHistory.aspx" />
+    <Content Include="BookList.aspx" />
+    <Content Include="AddEditBook.aspx" />
+    <Content Include="BookSearch.aspx" />
+    <Content Include="ChargeMember.aspx" />
+    <Content Include="IssueNote.aspx" />
+    <Content Include="IssueReturn.aspx" />
+    <Content Include="ReturnBook.aspx" />
+    <Content Include="Define.aspx" />
+    <Content Include="DefineFacilityFine.aspx" />
+    <Content Include="Reports.aspx" />
+    <Content Include="ReportsPanel.aspx" />
+    <Content Include="Reservations.aspx" />
+    <Content Include="MemberAttendance.aspx" />
+    <Content Include="MemberLedger.aspx" />
+    <Content Include="MultipleBooksWeedout.aspx" />
+    <Content Include="StockTracking.aspx" />
+    <Content Include="Weedout.aspx" />
+    <Content Include="WeededOutReport.aspx" />
+    <Content Include="OverdueManagement.aspx" />
+    <Content Include="Masters\Site.Master" />
+    <Content Include="..\Compliant\Complaint.Master" />
+    <Content Include="Web.config" />
+    <Content Include="..\Compliant\DefineFeedback.aspx" />
+    <Content Include="..\Compliant\ComplaintDashboard.aspx" />
+    <Content Include="..\Compliant\ComplaintPanel.aspx" />
+    <Content Include="..\Compliant\FeedbackSubmit.aspx" />
+    <Content Include="..\Compliant\EmpComplaintSubmit.aspx" />
+    <Content Include="..\Compliant\EmpComplaintAuthority.aspx" />
+    <Content Include="..\Compliant\EmpComplaintPanel.aspx" />
+    <Content Include="..\Compliant\EmpComplaintStatus.aspx" />
+    <Content Include="..\Compliant\AdminComplaint.aspx" />
+    <Content Include="..\Compliant\AdminViewComplaints.aspx" />
+    <Content Include="..\Compliant\MemberSurvey.aspx" />
+    <Content Include="..\Compliant\Site.master" />
+    <Content Include="..\Login.aspx" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="ISBN13Helper.cs" />
+    <Compile Include="..\Compliant\DrawMenu.cs" />
+    <Compile Include="AddEditBook.aspx.cs">
+      <DependentUpon>AddEditBook.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="AddEditBook.aspx.designer.cs">
+      <DependentUpon>AddEditBook.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="AdminLiveDashboard.aspx.cs">
+      <DependentUpon>AdminLiveDashboard.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="AdminLiveDashboard.aspx.designer.cs">
+      <DependentUpon>AdminLiveDashboard.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="AttendanceHistory.aspx.cs">
+      <DependentUpon>AttendanceHistory.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="AttendanceHistory.aspx.designer.cs">
+      <DependentUpon>AttendanceHistory.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="BookList.aspx.cs">
+      <DependentUpon>BookList.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="BookList.aspx.designer.cs">
+      <DependentUpon>BookList.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="BookSearch.aspx.cs">
+      <DependentUpon>BookSearch.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="BookSearch.aspx.designer.cs">
+      <DependentUpon>BookSearch.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="ChargeMember.aspx.cs">
+      <DependentUpon>ChargeMember.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="ChargeMember.aspx.designer.cs">
+      <DependentUpon>ChargeMember.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Dashboard.aspx.cs">
+      <DependentUpon>Dashboard.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Dashboard.aspx.designer.cs">
+      <DependentUpon>Dashboard.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Define.aspx.cs">
+      <DependentUpon>Define.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Define.aspx.designer.cs">
+      <DependentUpon>Define.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="DefineFacilityFine.aspx.cs">
+      <DependentUpon>DefineFacilityFine.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="DefineFacilityFine.aspx.designer.cs">
+      <DependentUpon>DefineFacilityFine.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="IssueNote.aspx.cs">
+      <DependentUpon>IssueNote.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="IssueNote.aspx.designer.cs">
+      <DependentUpon>IssueNote.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="IssueReturn.aspx.cs">
+      <DependentUpon>IssueReturn.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="IssueReturn.aspx.designer.cs">
+      <DependentUpon>IssueReturn.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Masters\Site.Master.cs">
+      <DependentUpon>Site.Master</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Masters\Site.Master.designer.cs">
+      <DependentUpon>Site.Master</DependentUpon>
+    </Compile>
+    <Compile Include="MemberAttendance.aspx.cs">
+      <DependentUpon>MemberAttendance.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="MemberAttendance.aspx.designer.cs">
+      <DependentUpon>MemberAttendance.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="MemberLedger.aspx.cs">
+      <DependentUpon>MemberLedger.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="MemberLedger.aspx.designer.cs">
+      <DependentUpon>MemberLedger.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="MultipleBooksWeedout.aspx.cs">
+      <DependentUpon>MultipleBooksWeedout.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="MultipleBooksWeedout.aspx.designer.cs">
+      <DependentUpon>MultipleBooksWeedout.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="OverdueManagement.aspx.cs">
+      <DependentUpon>OverdueManagement.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="OverdueManagement.aspx.designer.cs">
+      <DependentUpon>OverdueManagement.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Reports.aspx.cs">
+      <DependentUpon>Reports.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Reports.aspx.designer.cs">
+      <DependentUpon>Reports.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="ReportsPanel.aspx.cs">
+      <DependentUpon>ReportsPanel.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="ReportsPanel.aspx.designer.cs">
+      <DependentUpon>ReportsPanel.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Reservations.aspx.cs">
+      <DependentUpon>Reservations.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Reservations.aspx.designer.cs">
+      <DependentUpon>Reservations.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="ReturnBook.aspx.cs">
+      <DependentUpon>ReturnBook.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="ReturnBook.aspx.designer.cs">
+      <DependentUpon>ReturnBook.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="StockTracking.aspx.cs">
+      <DependentUpon>StockTracking.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="StockTracking.aspx.designer.cs">
+      <DependentUpon>StockTracking.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="WeededOutReport.aspx.cs">
+      <DependentUpon>WeededOutReport.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="WeededOutReport.aspx.designer.cs">
+      <DependentUpon>WeededOutReport.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Weedout.aspx.cs">
+      <DependentUpon>Weedout.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Weedout.aspx.designer.cs">
+      <DependentUpon>Weedout.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="..\Compliant\AdminComplaint.aspx.cs">
+      <DependentUpon>..\Compliant\AdminComplaint.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="..\Compliant\AdminComplaint.aspx.designer.cs">
+      <DependentUpon>..\Compliant\AdminComplaint.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="..\Compliant\AdminViewComplaints.aspx.cs">
+      <DependentUpon>..\Compliant\AdminViewComplaints.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="..\Compliant\AdminViewComplaints.aspx.designer.cs">
+      <DependentUpon>..\Compliant\AdminViewComplaints.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="..\Compliant\Complaint.Master.cs">
+      <DependentUpon>..\Compliant\Complaint.Master</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="..\Compliant\Complaint.Master.designer.cs">
+      <DependentUpon>..\Compliant\Complaint.Master</DependentUpon>
+    </Compile>
+    <Compile Include="..\Compliant\ComplaintDashboard.aspx.cs">
+      <DependentUpon>..\Compliant\ComplaintDashboard.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="..\Compliant\ComplaintDashboard.aspx.designer.cs">
+      <DependentUpon>..\Compliant\ComplaintDashboard.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="..\Compliant\ComplaintPanel.aspx.cs">
+      <DependentUpon>..\Compliant\ComplaintPanel.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="..\Compliant\ComplaintPanel.aspx.designer.cs">
+      <DependentUpon>..\Compliant\ComplaintPanel.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="..\Compliant\DefineFeedback.aspx.cs">
+      <DependentUpon>..\Compliant\DefineFeedback.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="..\Compliant\DefineFeedback.aspx.designer.cs">
+      <DependentUpon>..\Compliant\DefineFeedback.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="..\Compliant\EmpComplaintPanel.aspx.cs">
+      <DependentUpon>..\Compliant\EmpComplaintPanel.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="..\Compliant\EmpComplaintPanel.aspx.designer.cs">
+      <DependentUpon>..\Compliant\EmpComplaintPanel.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="..\Compliant\EmpComplaintStatus.aspx.cs">
+      <DependentUpon>..\Compliant\EmpComplaintStatus.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="..\Compliant\EmpComplaintStatus.aspx.designer.cs">
+      <DependentUpon>..\Compliant\EmpComplaintStatus.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="..\Compliant\EmpComplaintSubmit.aspx.cs">
+      <DependentUpon>..\Compliant\EmpComplaintSubmit.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="..\Compliant\EmpComplaintSubmit.aspx.designer.cs">
+      <DependentUpon>..\Compliant\EmpComplaintSubmit.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="..\Compliant\FeedbackSubmit.aspx.cs">
+      <DependentUpon>..\Compliant\FeedbackSubmit.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="..\Compliant\FeedbackSubmit.aspx.designer.cs">
+      <DependentUpon>..\Compliant\FeedbackSubmit.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="..\Compliant\MemberSurvey.aspx.cs">
+      <DependentUpon>..\Compliant\MemberSurvey.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="..\Compliant\MemberSurvey.aspx.designer.cs">
+      <DependentUpon>..\Compliant\MemberSurvey.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="..\Compliant\Site.master.cs">
+      <DependentUpon>..\Compliant\Site.master</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="..\Compliant\Site.master.designer.cs">
+      <DependentUpon>..\Compliant\Site.master</DependentUpon>
+    </Compile>
+    <Compile Include="..\Login.aspx.cs">
+      <DependentUpon>..\Login.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="..\Login.aspx.designer.cs">
+      <DependentUpon>..\Login.aspx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <Import Project="$(VSToolsPath)\WebApplications\Microsoft.WebApplication.targets" Condition="'$(VSToolsPath)' != '' and Exists('$(VSToolsPath)\WebApplications\Microsoft.WebApplication.targets')" />
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\WebApplications\Microsoft.WebApplication.targets" Condition="'$(VSToolsPath)' == '' or !Exists('$(VSToolsPath)\WebApplications\Microsoft.WebApplication.targets')" />
+  <ProjectExtensions>
+    <VisualStudio>
+      <FlavorProperties GUID="{349c5851-65df-11da-9384-00065b846f21}">
+        <WebProjectProperties>
+          <UseIIS>False</UseIIS>
+          <AutoAssignPort>True</AutoAssignPort>
+          <DevelopmentServerPort>51111</DevelopmentServerPort>
+          <DevelopmentServerVPath>/</DevelopmentServerVPath>
+          <IISUrl>http://localhost:51111/</IISUrl>
+          <NTLMAuthentication>False</NTLMAuthentication>
+          <UseCustomServer>False</UseCustomServer>
+          <CustomServerUrl></CustomServerUrl>
+          <SaveServerSettingsInUserFile>False</SaveServerSettingsInUserFile>
+        </WebProjectProperties>
+      </FlavorProperties>
+    </VisualStudio>
+  </ProjectExtensions>
+</Project>

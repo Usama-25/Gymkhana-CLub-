@@ -1,0 +1,163 @@
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; padding: 40px; max-width: 900px; margin: auto; }
+    h1 { color: #1A1A2E; border-bottom: 3px solid #C9A84C; padding-bottom: 10px; font-size: 28pt; margin-top: 40px; }
+    h2 { color: #8B5E3C; margin-top: 35px; border-bottom: 1px solid #e0d5c5; font-size: 20pt; padding-bottom: 5px; }
+    h3 { color: #1A1A2E; font-size: 16pt; margin-top: 25px; }
+    p { margin-bottom: 15px; }
+    table { width: 100%; border-collapse: collapse; margin: 25px 0; font-size: 11pt; }
+    th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+    th { background-color: #1A1A2E; color: #fff; font-weight: bold; }
+    tr:nth-child(even) { background-color: #f9f9f9; }
+    ul { margin-bottom: 20px; }
+    li { margin-bottom: 8px; }
+    hr { border: 0; border-top: 1px solid #e0d5c5; margin: 40px 0; }
+    .code { font-family: 'Courier New', monospace; background: #f4f4f4; padding: 2px 5px; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<h1>🏨 Guest Room Module: Technical Reference Manual</h1>
+<p>This document provides a detailed technical breakdown of the Guest Room Module, including database schemas, stored procedures, and operational logic flows.</p>
+
+<hr/>
+
+<h2>1. Database Schema (Tables)</h2>
+
+<h3>📊 RoomReservations</h3>
+<p>The primary table for tracking all bookings and financial advances.</p>
+<ul>
+    <li><b>ReservationNo</b> (PK): Unique ID for the booking (e.g., RES000106).</li>
+    <li><b>GroupResNo</b>: Links multiple rooms under one booking group.</li>
+    <li><b>GuestName</b>: Name of the primary guest.</li>
+    <li><b>ReservationType</b>: Guest, Member, or Affiliated.</li>
+    <li><b>FromDate / ToDate</b>: Planned stay period.</li>
+    <li><b>NoOfRooms</b>: Number of rooms requested.</li>
+    <li><b>AdvancePayment</b>: Payment made at the time of booking.</li>
+    <li><b>Status</b>: Static status (Pending, Confirmed, Occupied, Completed, Cancelled).</li>
+    <li><b>ReceiptNo</b>: Financial reference for the advance payment.</li>
+</ul>
+
+<h3>🔑 RoomAllocations</h3>
+<p>Tracks the actual physical occupancy of rooms.</p>
+<ul>
+    <li><b>AllocationID</b> (PK): Auto-increment ID.</li>
+    <li><b>ReservationNo</b> (FK): Links back to the reservation.</li>
+    <li><b>RoomNo</b>: The physical room number (e.g., 008).</li>
+    <li><b>AllocatedDate</b>: The exact time of check-in.</li>
+    <li><b>CheckOutDate</b>: The exact time of check-out (NULL if still occupied).</li>
+    <li><b>StayFactor</b>: Multiplier for billing (1.0 for full day, 0.5 for half day).</li>
+    <li><b>RFIDDeactive</b>: Tracking for electronic key status.</li>
+</ul>
+
+<h3>📜 GR_Bills</h3>
+<p>Stores finalized invoices and mid-stay payments.</p>
+<ul>
+    <li><b>BillNo</b> (PK): Invoice number or payment reference (e.g., INV-1001 or ADV-MID-xxx).</li>
+    <li><b>ReservationNo</b>: The associated booking.</li>
+    <li><b>TotalRoomRent</b>: Total calculated rent.</li>
+    <li><b>TaxPercent / TaxAmount</b>: GST details.</li>
+    <li><b>OtherCharges</b>: Sum of all service/facility charges.</li>
+    <li><b>AmountPaid</b>: Payment received during settlement.</li>
+    <li><b>BillStatus</b>: Settled, Draft, or Refunded.</li>
+</ul>
+
+<h3>🛠️ GR_RoomServices</h3>
+<p>Audit trail for daily charges (Rent, GST, Facilities).</p>
+<ul>
+    <li><b>ServiceID</b> (PK): Unique ID.</li>
+    <li><b>ReservationNo</b>: Associated booking.</li>
+    <li><b>ServiceName</b>: Description (e.g., "Room Rent (Automatic) - 22-Apr").</li>
+    <li><b>TotalAmount</b>: The cost of the service.</li>
+    <li><b>Status</b>: 'Pending' until included in a finalized bill.</li>
+</ul>
+
+<h3>🛌 RoomDefinitionNew</h3>
+<p>Inventory of physical rooms.</p>
+<ul>
+    <li><b>RoomNo</b> (PK): Room number.</li>
+    <li><b>Rent</b>: Default daily rate.</li>
+    <li><b>Status</b>: Clean, Dirty, Maintenance, or Occupied.</li>
+</ul>
+
+<hr/>
+
+<h2>2. Stored Procedures (Logic Layers)</h2>
+
+<h3>⚙️ sp_InsertRoomReservation</h3>
+<ul>
+    <li><b>Purpose</b>: Creates new rows in RoomReservations.</li>
+    <li><b>Inputs</b>: All guest details, dates, and advance payment.</li>
+    <li><b>Outputs</b>: @NewReservationNo, @NewReceiptNo.</li>
+    <li><b>Logic</b>: Increments the reservation counter and generates a financial receipt for the advance.</li>
+</ul>
+
+<h3>⚙️ sp_GR_GetReservationForBill</h3>
+<ul>
+    <li><b>Purpose</b>: Fetches all data required to generate an invoice.</li>
+    <li><b>Logic</b>: Joins RoomReservations, RoomAllocations, and GR_Bills to find weighted nights and existing payments.</li>
+</ul>
+
+<h3>⚙️ sp_GR_SaveBill</h3>
+<ul>
+    <li><b>Purpose</b>: Finalizes the guest account.</li>
+    <li><b>Inputs</b>: Final counts for rooms/nights, taxes, and payments.</li>
+    <li><b>Outputs</b>: @BillNo, @NetBalance, @PayBack.</li>
+    <li><b>Logic</b>: Marks all 'Pending' service charges as 'Settled' and updates the reservation status.</li>
+</ul>
+
+<h3>⚙️ sp_GR_NightAudit</h3>
+<ul>
+    <li><b>Purpose</b>: Daily automation of billing.</li>
+    <li><b>Logic</b>: Runs every midnight. Loops through all RoomAllocations where CheckOutDate IS NULL and inserts new records into GR_RoomServices for that day's Rent and GST.</li>
+</ul>
+
+<hr/>
+
+<h2>3. Operational Logic Flows</h2>
+
+<h3>🔄 Reservation & Check-In Flow</h3>
+<ol>
+    <li><b>Reservation</b>: User saves booking -> sp_InsertRoomReservation called -> Row added to RoomReservations.</li>
+    <li><b>Check-In</b>: User selects room -> RoomCheckIn.aspx -> Row added to RoomAllocations with CheckOutDate = NULL -> RoomDefinitionNew.Status set to 'Occupied'.</li>
+    <li><b>Real-Time Status</b>: Dashboard queries RoomAllocations. If a record exists with NULL checkout, the UI shows OCCUPIED regardless of the static status column.</li>
+</ol>
+
+<h3>🔄 Stay Extension Flow</h3>
+<ol>
+    <li>User selects "Edit" in RoomReservation.aspx.</li>
+    <li>LoadReservationForEdit populates the form.</li>
+    <li>User changes ToDate and clicks "Save".</li>
+    <li><b>Availability Check</b>: System queries RoomReservations for the new date range, EXCLUDING the current ReservationNo.</li>
+    <li><b>Update</b>: System performs an UPDATE on the existing row in RoomReservations instead of an INSERT.</li>
+</ol>
+
+<h3>🔄 Check-Out & Billing Flow</h3>
+<ol>
+    <li><b>Check-Out</b>: User releases room -> RoomAllocations.CheckOutDate updated to GETDATE() -> Room set to 'Dirty'.</li>
+    <li><b>Billing</b>: User searches ReservationNo in ManageBills.aspx.</li>
+    <li><b>Validation</b>: IsCheckoutAllowed checks if CheckOutDate is not null for any room in the group.</li>
+    <li><b>Aggregation</b>: System sums all AdvancePayment from RoomReservations + all ADV-MID payments from GR_Bills.</li>
+    <li><b>Finalization</b>: User clicks "Finalize" -> sp_GR_SaveBill processes the transaction -> All service charges marked as 'Settled'.</li>
+</ol>
+
+<h3>🔄 Night Audit Flow (Automated)</h3>
+<ol>
+    <li><b>Trigger</b>: SQL Agent Job runs at 12:05 AM.</li>
+    <li><b>Query</b>: Finds all rooms in RoomAllocations where CheckOutDate is NULL.</li>
+    <li><b>Posting</b>: 
+        <ul>
+            <li>Inserts "Room Rent (Automatic)" into GR_RoomServices.</li>
+            <li>Inserts "GST on Room Rent" into GR_RoomServices.</li>
+        </ul>
+    </li>
+    <li><b>Result</b>: Guest Ledger shows the new balance immediately.</li>
+</ol>
+
+<hr/>
+<p style="text-align: center; color: #777;">Technical Manual Version: 2.0 (April 2026)</p>
+
+</body>
+</html>

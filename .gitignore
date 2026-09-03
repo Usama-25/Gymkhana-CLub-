@@ -1,0 +1,17 @@
+## Visual Studio temporary files & user settings
+.vs/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+## Build outputs (ignore precompiled output and obj)
+bin/PrecompiledOutput/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+
+## Temporary & Log files
+*.tmp
+*.log

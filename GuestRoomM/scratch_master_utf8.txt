@@ -1,0 +1,684 @@
+﻿<%@ Master Language="C#" AutoEventWireup="true" CodeFile="SiteGuestroom.master.cs" Inherits="SiteGuestroom" %>
+
+<!DOCTYPE html>
+<html lang="en">
+<head runat="server">
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+    <title>Lahore Gymkhana Club - Guest Room Management</title>
+
+    <!-- Font Awesome 6 (Free CDN) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        /* ============================================
+           RESET & VARIABLES
+        ============================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1e3a5f;
+            --primary-dark: #0f2b48;
+            --primary-light: #e8f0fe;
+            --secondary: #c5a572;
+            --secondary-light: #f5efe3;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --sidebar-bg: #0f172a;
+            --sidebar-text: #94a3b8;
+            --sidebar-hover: #1e293b;
+            --sidebar-active: #3b82f6;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            color: var(--gray-700);
+            background: var(--gray-50);
+            overflow: hidden;
+        }
+
+        /* App Layout */
+        .app {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+        }
+
+        /* ============================================
+           SIDEBAR
+        ============================================ */
+        .sidebar {
+            width: 280px;
+            background: var(--sidebar-bg);
+            color: var(--sidebar-text);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+            z-index: 100;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .sidebar-header {
+            padding: 24px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--secondary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: var(--sidebar-bg);
+        }
+
+        .logo-text h3 {
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .logo-text p {
+            font-size: 11px;
+            color: var(--secondary);
+            letter-spacing: 1px;
+        }
+
+        /* Navigation */
+        .nav-section {
+            padding: 0 16px;
+            margin-bottom: 24px;
+        }
+
+        .nav-section-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--gray-500);
+            padding: 0 12px;
+            margin-bottom: 12px;
+        }
+
+        .nav-item {
+            margin-bottom: 4px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            color: var(--sidebar-text);
+            text-decoration: none;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .nav-link:hover {
+            background: var(--sidebar-hover);
+            color: white;
+        }
+
+        .nav-link.active {
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--sidebar-active);
+        }
+
+        .nav-link i {
+            width: 20px;
+            font-size: 16px;
+        }
+
+        .nav-label {
+            flex: 1;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .nav-arrow {
+            font-size: 12px;
+            transition: transform 0.2s;
+        }
+
+        .nav-dropdown.open .nav-arrow {
+            transform: rotate(90deg);
+        }
+
+        .dropdown-menu {
+            margin-left: 32px;
+            margin-top: 4px;
+            display: none;
+        }
+
+        .nav-dropdown.open .dropdown-menu {
+            display: block;
+        }
+
+        .dropdown-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            color: var(--sidebar-text);
+            text-decoration: none;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .dropdown-link:hover {
+            background: var(--sidebar-hover);
+            color: white;
+        }
+
+        .dropdown-link::before {
+            content: "•";
+            font-size: 14px;
+        }
+
+        /* Sidebar Footer */
+        .sidebar-footer {
+            margin-top: auto;
+            padding: 20px 16px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .logout-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            color: #f87171;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(239, 68, 68, 0.1);
+            color: #fca5a5;
+        }
+
+        /* ============================================
+           MAIN CONTENT
+        ============================================ */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: var(--gray-50);
+        }
+
+        /* Top Header */
+        .top-header {
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+            padding: 0 24px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .mobile-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--gray-600);
+        }
+
+        .club-logo {
+            height: 45px;
+            width: auto;
+        }
+
+        .club-info h2 {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 2px;
+        }
+
+        .club-info p {
+            font-size: 11px;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-icon {
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            background: var(--gray-100);
+            color: var(--gray-600);
+            text-decoration: none;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .header-icon:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .badge-dot {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 8px;
+            height: 8px;
+            background: var(--danger);
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 6px 12px 6px 8px;
+            background: var(--gray-100);
+            border-radius: 40px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .user-profile:hover {
+            background: var(--primary-light);
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .user-details {
+            line-height: 1.3;
+        }
+
+        .user-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .user-role {
+            font-size: 10px;
+            color: var(--gray-500);
+        }
+
+        /* Breadcrumb */
+        .breadcrumb {
+            background: white;
+            padding: 12px 24px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .breadcrumb a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .breadcrumb .separator {
+            color: var(--gray-400);
+        }
+
+        .breadcrumb .current {
+            color: var(--gray-600);
+            font-weight: 600;
+        }
+
+        /* Content Area */
+        .content-wrapper {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        /* Footer */
+        .footer {
+            background: white;
+            border-top: 1px solid var(--gray-200);
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: var(--gray-500);
+            flex-shrink: 0;
+        }
+
+        .footer a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        /* Utility Classes */
+        .text-center { text-align: center; }
+        .mt-2 { margin-top: 8px; }
+        .mb-2 { margin-bottom: 8px; }
+        .mt-3 { margin-top: 12px; }
+        .mb-3 { margin-bottom: 12px; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: -280px;
+                height: 100vh;
+                z-index: 1000;
+            }
+            
+            .sidebar.open {
+                left: 0;
+            }
+            
+            .mobile-toggle {
+                display: block;
+            }
+            
+            .club-info h2 {
+                font-size: 14px;
+            }
+            
+            .user-details {
+                display: none;
+            }
+            
+            .content-wrapper {
+                padding: 16px;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--gray-100);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--gray-400);
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--gray-500);
+        }
+    </style>
+
+    <asp:ContentPlaceHolder ID="HeadContent" runat="server"></asp:ContentPlaceHolder>
+</head>
+<body>
+    <form runat="server">
+        <asp:ScriptManager ID="ScriptManager1" runat="server"></asp:ScriptManager>
+        
+        <div class="app">
+            <!-- Sidebar -->
+            <aside class="sidebar" id="sidebar">
+                <div class="sidebar-header">
+                    <div class="logo">
+                        <div class="logo-icon">
+                            <i class="fas fa-crown"></i>
+                        </div>
+                        <div class="logo-text">
+                            <h3>Lahore Gymkhana</h3>
+                            <p>Guest Room Management</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">MAIN</div>
+                    
+                    <div class="nav-item" id="liDashboard" runat="server">
+                        <a href="~/MemberShipModule/Dashbord.aspx" runat="server" class="nav-link">
+                            <i class="fas fa-chart-line"></i>
+                            <span class="nav-label">Dashboard</span>
+                        </a>
+                    </div>
+
+                    <div class="nav-item" id="liAdminDashboard" runat="server">
+                        <a href="~/MemberShipModule/AdminDashboard.aspx" runat="server" class="nav-link">
+                            <i class="fas fa-user-shield"></i>
+                            <span class="nav-label">Admin Dashboard</span>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">MODULES</div>
+                    <asp:UpdatePanel ID="upSidebar" runat="server" UpdateMode="Conditional">
+                        <ContentTemplate>
+                            <asp:Repeater ID="rptModules" runat="server" OnItemDataBound="rptModules_ItemDataBound">
+                                <ItemTemplate>
+                                    <div class="nav-item nav-dropdown" id='<%# "mod_" + Eval("Module_ID") %>'>
+                                        <div class="nav-link" onclick='toggleNav("<%# "mod_" + Eval("Module_ID") %>")'>
+                                            <i class="fas fa-folder"></i>
+                                            <span class="nav-label"><%# Eval("Module_Name") %></span>
+                                            <i class="fas fa-chevron-right nav-arrow"></i>
+                                        </div>
+                                        <div class="dropdown-menu">
+                                            <asp:Repeater ID="rptPages" runat="server">
+                                                <ItemTemplate>
+                                                    <a href='<%# ResolveUrl(Eval("Page_URL").ToString()) %>' class="dropdown-link">
+                                                        <%# Eval("Page_Name") %>
+                                                    </a>
+                                                </ItemTemplate>
+                                            </asp:Repeater>
+                                        </div>
+                                    </div>
+                                </ItemTemplate>
+                            </asp:Repeater>
+                            
+                            <asp:Panel ID="pnlAdminNav" runat="server" Visible="false">
+                                <div class="nav-item nav-dropdown" id="navManagement">
+                                    <div class="nav-link" onclick="toggleNav('navManagement')">
+                                        <i class="fas fa-cog"></i>
+                                        <span class="nav-label">Administration</span>
+                                        <i class="fas fa-chevron-right nav-arrow"></i>
+                                    </div>
+                                    <div class="dropdown-menu">
+                                        <a href="~/MemberShipModule/ManageModules.aspx" runat="server" class="dropdown-link">Manage Modules</a>
+                                        <a href="~/MemberShipModule/ManagePages.aspx" runat="server" class="dropdown-link">Manage Pages</a>
+                                        <a href="~/MemberShipModule/AssignPermissions.aspx" runat="server" class="dropdown-link">Assign Permissions</a>
+                                    </div>
+                                </div>
+                            </asp:Panel>
+                        </ContentTemplate>
+                    </asp:UpdatePanel>
+                </div>
+
+                <div class="sidebar-footer">
+                    <a href="~/MemberShipModule/Login.aspx" runat="server" class="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </a>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <div class="main-content">
+                <header class="top-header">
+                    <div class="header-left">
+                        <button class="mobile-toggle" onclick="toggleSidebar()">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                        <img src="~/MemberShipModule/assets/images/logo_new.png" runat="server" alt="Club Logo" class="club-logo" onerror="this.style.display='none'" />
+                        <div class="club-info">
+                            <h2>Lahore Gymkhana Club</h2>
+                            <p>Guest Room Management System</p>
+                        </div>
+                    </div>
+                    <div class="header-right">
+                        <a href="#" class="header-icon">
+                            <i class="fas fa-bell"></i>
+                            <span class="badge-dot"></span>
+                        </a>
+                        <a href="#" class="header-icon" onclick="window.print()">
+                            <i class="fas fa-print"></i>
+                        </a>
+                        <div class="user-profile">
+                            <div class="user-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="user-details">
+                                <div class="user-name">
+                                    <asp:Label ID="lblUser" runat="server" Text="Guest User"></asp:Label>
+                                </div>
+                                <div class="user-role">Staff Member</div>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="breadcrumb">
+                    <a href="~/MemberShipModule/Dashbord.aspx" runat="server">
+                        <i class="fas fa-home"></i> Home
+                    </a>
+                    <span class="separator">/</span>
+                    <span class="current">
+                        <asp:ContentPlaceHolder ID="PageTitle" runat="server">
+                            Guest Room Management
+                        </asp:ContentPlaceHolder>
+                    </span>
+                </div>
+
+                <div class="content-wrapper">
+                    <asp:ContentPlaceHolder ID="MainContent" runat="server">
+                        <!-- Child page content will appear here -->
+                    </asp:ContentPlaceHolder>
+                </div>
+
+                <footer class="footer">
+                    <div>
+                        <i class="fas fa-bolt" style="color: var(--secondary);"></i>
+                        Powered by <strong>MegaPlus Technologies</strong>
+                    </div>
+                    <div>
+                        <a href="#">Privacy Policy</a> &nbsp;|&nbsp;
+                        <a href="#">Support</a> &nbsp;|&nbsp;
+                        &copy; 2026 Lahore Gymkhana Club
+                    </div>
+                </footer>
+            </div>
+        </div>
+
+        <script>
+            // Toggle navigation dropdown
+            function toggleNav(id) {
+                var element = document.getElementById(id);
+                if (element) {
+                    element.classList.toggle('open');
+                }
+            }
+
+            // Toggle mobile sidebar
+            function toggleSidebar() {
+                var sidebar = document.getElementById('sidebar');
+                sidebar.classList.toggle('open');
+            }
+
+            // Close sidebar when clicking outside on mobile
+            document.addEventListener('click', function(event) {
+                var sidebar = document.getElementById('sidebar');
+                var toggleBtn = document.querySelector('.mobile-toggle');
+                
+                if (window.innerWidth <= 768 && sidebar.classList.contains('open')) {
+                    if (!sidebar.contains(event.target) && !toggleBtn.contains(event.target)) {
+                        sidebar.classList.remove('open');
+                    }
+                }
+            });
+
+            // Highlight active menu item
+            document.addEventListener('DOMContentLoaded', function() {
+                var currentPath = window.location.pathname.toLowerCase();
+                
+                document.querySelectorAll('.dropdown-link').forEach(function(link) {
+                    var href = link.getAttribute('href');
+                    if (href && currentPath.indexOf(href.toLowerCase()) > -1) {
+                        link.classList.add('active');
+                        var parent = link.closest('.nav-dropdown');
+                        if (parent) parent.classList.add('open');
+                    }
+                });
+            });
+        </script>
+    </form>
+</body>
+</html>

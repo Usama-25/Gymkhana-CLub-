@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report xmlns="http://schemas.microsoft.com/sqlserver/reporting/2008/01/reportdefinition" xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner">
+  <Body>
+    <ReportItems>
+      <Image Name="Image2">
+        <Source>Database</Source>
+        <Value>=First(Fields!Right_Image.Value, "DataSet1")</Value>
+        <MIMEType>image/jpeg</MIMEType>
+        <Sizing>FitProportional</Sizing>
+        <Top>0.01152in</Top>
+        <Left>5.85938in</Left>
+        <Height>1.13305in</Height>
+        <Width>1.05209in</Width>
+        <ToolTip>RightImage</ToolTip>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+        </Style>
+      </Image>
+      <Textbox Name="Textbox2">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Label>Hospital Name</Label>
+                <Value>=First(Fields!Hospital_Name.Value, "DataSet1")</Value>
+                <Style>
+                  <FontWeight>Bold</FontWeight>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style>
+              <TextAlign>Center</TextAlign>
+            </Style>
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>Textbox2</rd:DefaultName>
+        <Top>0.01152in</Top>
+        <Left>1.51911in</Left>
+        <Height>0.20487in</Height>
+        <Width>4.09376in</Width>
+        <ZIndex>1</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+          <PaddingTop>2pt</PaddingTop>
+          <PaddingBottom>2pt</PaddingBottom>
+        </Style>
+      </Textbox>
+      <Textbox Name="Textbox4">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Label>HeadingOne</Label>
+                <Value>=First(Fields!Heading_One.Value, "DataSet1")</Value>
+                <Style />
+              </TextRun>
+            </TextRuns>
+            <Style>
+              <TextAlign>Center</TextAlign>
+            </Style>
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>Textbox3</rd:DefaultName>
+        <Top>0.25805in</Top>
+        <Left>1.51911in</Left>
+        <Height>0.21528in</Height>
+        <Width>4.09376in</Width>
+        <ZIndex>2</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+          <PaddingTop>2pt</PaddingTop>
+          <PaddingBottom>2pt</PaddingBottom>
+        </Style>
+      </Textbox>
+      <Textbox Name="Textbox6">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Label>HeadingTwo</Label>
+                <Value>=First(Fields!Heading_Two.Value, "DataSet1")</Value>
+                <Style />
+              </TextRun>
+            </TextRuns>
+            <Style>
+              <TextAlign>Center</TextAlign>
+            </Style>
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>Textbox4</rd:DefaultName>
+        <Top>0.515in</Top>
+        <Left>1.51911in</Left>
+        <Height>0.22222in</Height>
+        <Width>4.09376in</Width>
+        <ZIndex>3</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+          <PaddingTop>2pt</PaddingTop>
+          <PaddingBottom>2pt</PaddingBottom>
+        </Style>
+      </Textbox>
+      <Image Name="Image3">
+        <Source>Database</Source>
+        <Value>=First(Fields!Left_Image.Value, "DataSet1")</Value>
+        <MIMEType>image/jpeg</MIMEType>
+        <Sizing>FitProportional</Sizing>
+        <Top>0.00576in</Top>
+        <Height>1.12729in</Height>
+        <Width>1.15626in</Width>
+        <ZIndex>4</ZIndex>
+        <ToolTip>RightImage</ToolTip>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+        </Style>
+      </Image>
+      <Textbox Name="Heading_Three">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>=First(Fields!Heading_Three.Value, "DataSet1")</Value>
+                <Style />
+              </TextRun>
+            </TextRuns>
+            <Style>
+              <TextAlign>Center</TextAlign>
+            </Style>
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>Heading_Three</rd:DefaultName>
+        <Top>0.765in</Top>
+        <Left>1.21876in</Left>
+        <Height>0.21639in</Height>
+        <Width>4.58507in</Width>
+        <ZIndex>5</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+          <PaddingTop>2pt</PaddingTop>
+          <PaddingBottom>2pt</PaddingBottom>
+        </Style>
+      </Textbox>
+    </ReportItems>
+    <Height>1.26958in</Height>
+    <Style>
+      <Border>
+        <Style>None</Style>
+      </Border>
+      <BottomBorder>
+        <Color>Black</Color>
+        <Style>Solid</Style>
+        <Width>1pt</Width>
+      </BottomBorder>
+    </Style>
+  </Body>
+  <Width>6.91147in</Width>
+  <Page>
+    <Style />
+  </Page>
+  <AutoRefresh>0</AutoRefresh>
+  <DataSources>
+    <DataSource Name="BasicDataInfoDataSet">
+      <ConnectionProperties>
+        <DataProvider>System.Data.DataSet</DataProvider>
+        <ConnectString>/* Local Connection */</ConnectString>
+      </ConnectionProperties>
+      <rd:DataSourceID>277e48a4-0ec7-491e-b931-2279a9494080</rd:DataSourceID>
+    </DataSource>
+  </DataSources>
+  <DataSets>
+    <DataSet Name="DataSet1">
+      <Query>
+        <DataSourceName>BasicDataInfoDataSet</DataSourceName>
+        <CommandText>/* Local Query */</CommandText>
+      </Query>
+      <Fields>
+        <Field Name="Report_ID">
+          <DataField>Report_ID</DataField>
+          <rd:TypeName>System.Int32</rd:TypeName>
+        </Field>
+        <Field Name="Hospital_Name">
+          <DataField>Hospital_Name</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="Heading_One">
+          <DataField>Heading_One</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="Heading_Two">
+          <DataField>Heading_Two</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="Heading_Three">
+          <DataField>Heading_Three</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="Footer_Heading">
+          <DataField>Footer_Heading</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="Left_Image">
+          <DataField>Left_Image</DataField>
+          <rd:TypeName>System.Byte[]</rd:TypeName>
+        </Field>
+        <Field Name="Right_Image">
+          <DataField>Right_Image</DataField>
+          <rd:TypeName>System.Byte[]</rd:TypeName>
+        </Field>
+      </Fields>
+      <rd:DataSetInfo>
+        <rd:DataSetName>BasicDataInfoDataSet</rd:DataSetName>
+        <rd:SchemaPath>C:\Users\Nazim\Documents\Visual Studio 2013\WebSites\forRdlcReporting\App_Code\BasicDataInfoDataSet1.xsd</rd:SchemaPath>
+        <rd:TableName>usp_ReportHeaderData</rd:TableName>
+        <rd:TableAdapterFillMethod>Fill</rd:TableAdapterFillMethod>
+        <rd:TableAdapterGetDataMethod>GetData</rd:TableAdapterGetDataMethod>
+        <rd:TableAdapterName>usp_ReportHeaderDataTableAdapter</rd:TableAdapterName>
+      </rd:DataSetInfo>
+    </DataSet>
+  </DataSets>
+  <rd:ReportUnitType>Inch</rd:ReportUnitType>
+  <rd:ReportID>425a4a58-03a8-4d76-9e2f-3542c25c8fb1</rd:ReportID>
+</Report>

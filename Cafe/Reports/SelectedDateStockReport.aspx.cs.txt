@@ -1,0 +1,110 @@
+﻿using Microsoft.Reporting.WebForms;
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Data;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Web;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+
+public partial class Store_SelectedDateStockReport : System.Web.UI.Page
+{
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        if(!Page.IsPostBack)
+        {
+           // bindSubdepartment();
+            txtStartDate.Value = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+            txtEndDate.Value = DateTime.Now.ToString("dd-MM-yyyy");
+            ddlHospital.SelectedValue= Session["hospitalid"].ToString();
+            // ddlSubDepartment.SelectedValue = Session["SubDeptID"].ToString();
+            // DDL_Branch.SelectedValue= Session["SubDeptID"].ToString();
+            //DDL_Branch.SelectedValue =Session["SubDeptID"].ToString();
+
+        }
+    }
+    protected void btnSearch_Click(object sender, EventArgs e)
+    {
+        bindReport();
+    }
+    //protected void bindSubdepartment()
+    //{
+    //    DbManager dbMgr = new DbManager();
+    //    String query = "Select 0 SubDept_Id,'---ALL---' SubDept_Name union Select SubDept_Id,upper(SubDept_Name) SubDept_Name From SubDepartment Where SubDept_Name like  @SubDept_Name  Order By SubDept_Name";
+    //    SqlParameter[] sqlParam = { new SqlParameter("@SubDept_Name", "%") };
+    //    ddlSubDepartment.DataSource = dbMgr.ExecuteDataTableWithQuery(query, "STOREConnectionString", sqlParam);
+    //    ddlSubDepartment.DataTextField = "SubDept_Name";
+    //    ddlSubDepartment.DataValueField = "SubDept_Id";
+    //    ddlSubDepartment.DataBind();
+
+    //}
+    protected void bindReport()
+    {
+        DbManager dbMgr = new DbManager();
+        string StartDate = Convert.ToDateTime(txtStartDate.Value).ToString("yyyy-MM-dd");
+        string EndDate = Convert.ToDateTime(txtEndDate.Value).ToString("yyyy-MM-dd");
+
+
+        SqlParameter[] sqlParam = { new SqlParameter("@StartDate",StartDate),
+                                    new SqlParameter("@EndDate", EndDate),
+                                    new SqlParameter("@SubDept_Id", DDL_Branch.SelectedValue),
+                                    new SqlParameter("@Item_Name", txtItemName.Text),
+        new SqlParameter("@Category", DropDownList_Category.SelectedValue),
+            new SqlParameter("@SubCategory", ddlSubCategory.SelectedValue),
+        new SqlParameter("@Dept_ID", Dropdownlistdepartment.SelectedValue)}; 
+         DataTable dt = new DataTable();
+        dt = dbMgr.ExecuteDataTable("uspSelectedDateStockReport", "STOREConnectionString", sqlParam);
+        ReportDataSource rds = new ReportDataSource();
+        rds.Name = "DataSet1";
+        rds.Value = dt;
+        ReportViewer1.LocalReport.DataSources.Clear();
+        ReportViewer1.LocalReport.ReportPath = Server.MapPath("SelectedDateStockReport.rdlc");
+        ReportViewer1.LocalReport.DataSources.Add(rds);
+
+
+        ReportParameter rp = new ReportParameter("Start_Date", StartDate);
+        ReportParameter rp2 = new ReportParameter("End_Date", EndDate);
+
+        ReportViewer1.LocalReport.SetParameters(new ReportParameter[] { rp, rp2 });
+
+        ReportViewer1.LocalReport.SubreportProcessing += new SubreportProcessingEventHandler(subReports);
+        ReportViewer1.LocalReport.Refresh();
+    }
+    [System.Web.Script.Services.ScriptMethod(), System.Web.Services.WebMethod()]
+    public static List<string> SearchItems(string prefixText, int count)
+    {
+        List<string> items = new List<string>();
+        SqlConnection conn = new SqlConnection();
+        conn.ConnectionString = ConfigurationManager.ConnectionStrings["STOREConnectionString"].ConnectionString;
+        SqlCommand cmd = new SqlCommand();
+        cmd.CommandText = "Select Item_Code,Item_Name Item_Name From Store_Items Where Item_Name LIKE '%' + @Search + '%' Or Item_Code like '%' + @Search + '%' and Is_Active=1";
+        cmd.CommandType = CommandType.Text;
+        cmd.Parameters.AddWithValue("@Search", prefixText);
+        cmd.Connection = conn;
+        conn.Open();
+        SqlDataReader sdr = cmd.ExecuteReader();
+        while (sdr.Read())
+        {
+            items.Add(AjaxControlToolkit.AutoCompleteExtender.CreateAutoCompleteItem(sdr["Item_Name"].ToString(), sdr["Item_Code"].ToString()));
+        }
+        return items;
+    }
+    public void subReports(object sender, SubreportProcessingEventArgs e)
+    {
+        try
+        {
+            e.DataSources.Clear();
+            DataTable dt = (DataTable)Session["DynamicHeader"];
+            e.DataSources.Add(new ReportDataSource("DataSet1", dt));
+            e.DataSources.Add(new ReportDataSource("DataSetFooter", dt));
+        }
+        catch (Exception)
+        {
+
+        }
+
+
+    }
+}

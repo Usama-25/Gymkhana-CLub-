@@ -1,0 +1,202 @@
+<%@ Master Language="C#" AutoEventWireup="true" CodeFile="GymkhanaMaster.master.cs" Inherits="GymkhanaNew.MasterPages.GymkhanaMaster" %>
+
+<!DOCTYPE html>
+<html lang="en">
+<head runat="server">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gymkhana Club Management System</title>
+    <style>
+        :root {
+            --primary       : #1a4a7a;
+            --primary-lt    : #2563a8;
+            --primary-dark  : #0f2d4e;
+            --accent        : #e8f0fb;
+            --text          : #1e293b;
+            --text-muted    : #64748b;
+            --border        : #d1d5db;
+            --surface       : #ffffff;
+            --danger        : #dc2626;
+            --success       : #16a34a;
+            --warning       : #d97706;
+            --radius        : 8px;
+            --radius-lg     : 12px;
+            --shadow        : 0 2px 8px rgba(0,0,0,.10);
+            --shadow-lg     : 0 4px 16px rgba(0,0,0,.15);
+            --font          : 'Segoe UI', system-ui, sans-serif;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font);
+            background-color: #f8fafc;
+            color: var(--text);
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Layout Skeleton */
+        .app-header {
+            background-color: var(--primary-dark);
+            color: var(--surface);
+            padding: 0 1.5rem;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .app-brand {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--surface);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .user-nav {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-info {
+            font-size: 0.875rem;
+            color: var(--accent);
+        }
+
+        .btn-logout {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--surface);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 0.4rem 0.8rem;
+            border-radius: var(--radius);
+            font-size: 0.875rem;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn-logout:hover {
+            background-color: var(--danger);
+            border-color: var(--danger);
+        }
+
+        .app-body {
+            display: flex;
+            flex: 1;
+        }
+
+        .app-sidebar {
+            width: 250px;
+            background-color: var(--surface);
+            border-right: 1px solid var(--border);
+            padding: 1.5rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .nav-group-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-top: 1rem;
+            margin-bottom: 0.25rem;
+            padding-left: 0.75rem;
+            font-weight: 600;
+        }
+
+        .nav-group-title:first-child {
+            margin-top: 0;
+        }
+
+        .nav-item {
+            display: block;
+            padding: 0.6rem 0.75rem;
+            color: var(--text);
+            text-decoration: none;
+            border-radius: var(--radius);
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .nav-item:hover {
+            background-color: var(--accent);
+            color: var(--primary);
+        }
+
+        .app-main {
+            flex: 1;
+            padding: 2rem;
+            background-color: #f8fafc;
+            overflow-x: auto;
+        }
+
+        .app-footer {
+            background-color: var(--surface);
+            border-top: 1px solid var(--border);
+            padding: 1rem 1.5rem;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+    </style>
+    <asp:ContentPlaceHolder ID="HeadContent" runat="server">
+    </asp:ContentPlaceHolder>
+</head>
+<body>
+    <form id="form1" runat="server">
+        <asp:ScriptManager ID="ScriptManager1" runat="server" />
+        
+        <header class="app-header">
+            <a href="~/Default.aspx" runat="server" class="app-brand">
+                <span>🏛️</span> Gymkhana Club
+            </a>
+            <div class="user-nav">
+                <asp:Label ID="lblUserName" runat="server" CssClass="user-info" />
+                <asp:LinkButton ID="btnLogout" runat="server" CssClass="btn-logout" OnClick="btnLogout_Click" CauseValidation="false">Logout</asp:LinkButton>
+            </div>
+        </header>
+
+        <div class="app-body">
+            <aside class="app-sidebar">
+                <a href="~/Default.aspx" runat="server" class="nav-item">Dashboard</a>
+                
+                <div class="nav-group-title">Modules</div>
+                <a href="~/Baquetsystems/BanquetDashboard.aspx" runat="server" class="nav-item">Banquet Systems</a>
+                <a href="~/Cafe/CafeDashboard.aspx" runat="server" class="nav-item">Cafe Management</a>
+                <a href="~/GuestRoomM/GuestRoomDashboard.aspx" runat="server" class="nav-item">Guest Room Management</a>
+                <a href="~/Library Management/LibraryDashboard.aspx" runat="server" class="nav-item">Library Management</a>
+                <a href="~/MemberShipModule/MembershipDashboard.aspx" runat="server" class="nav-item">Membership Module</a>
+                <a href="~/Member_Billing/DefineSubscription.aspx" runat="server" class="nav-item">Member Billing</a>
+                <a href="~/Restaurant/RestaurantDashboard.aspx" runat="server" class="nav-item">Restaurant System</a>
+            </aside>
+
+            <main class="app-main">
+                <asp:ContentPlaceHolder ID="MainContent" runat="server">
+                </asp:ContentPlaceHolder>
+            </main>
+        </div>
+
+        <footer class="app-footer">
+            &copy; <%= DateTime.Now.Year %> Gymkhana Club Management System. All rights reserved.
+        </footer>
+    </form>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<%@ Master Language="C#" AutoEventWireup="true" CodeFile="Site.Master.cs" Inherits="Masters_Site" %>
+<!DOCTYPE html>
+<html lang="en">
+<head runat="server">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lahore Gymkhana Library</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        body { font-family: 'Inter', sans-serif; margin: 0; background-color: #f4f6f9; color: #333; }
+        .lib-header { background: #1e293b; color: white; padding: 15px 25px; display: flex; justify-space-between; align-items: center; }
+        .lib-header h1 { margin: 0; font-size: 1.25rem; font-weight: 700; }
+        .lib-nav { background: #0f172a; padding: 10px 25px; display: flex; gap: 15px; flex-wrap: wrap; }
+        .lib-nav a { color: #cbd5e1; text-decoration: none; font-size: 0.85rem; font-weight: 500; padding: 5px 10px; border-radius: 4px; }
+        .lib-nav a:hover { background: #334155; color: white; }
+        .lib-container { padding: 25px; max-width: 1400px; margin: 0 auto; }
+    </style>
+    <asp:ContentPlaceHolder ID="cphHead" runat="server">
+    </asp:ContentPlaceHolder>
+</head>
+<body>
+    <form id="form1" runat="server">
+        <asp:ScriptManager ID="ScriptManager1" runat="server" />
+        <div class="lib-header">
+            <h1><i class="fas fa-book-reader" style="margin-right: 10px;"></i>Lahore Gymkhana Library</h1>
+        </div>
+        <div class="lib-nav">
+            <a href="Dashboard.aspx"><i class="fas fa-chart-line"></i> Dashboard</a>
+            <a href="BookList.aspx"><i class="fas fa-books"></i> Book Catalogue</a>
+            <a href="BookSearch.aspx"><i class="fas fa-search"></i> Search Books</a>
+            <a href="IssueReturn.aspx"><i class="fas fa-exchange-alt"></i> Issue / Return</a>
+            <a href="Reservations.aspx"><i class="fas fa-bookmark"></i> Reservations</a>
+            <a href="ChargeMember.aspx"><i class="fas fa-file-invoice-dollar"></i> Member Charges</a>
+            <a href="MemberLedger.aspx"><i class="fas fa-receipt"></i> Member Ledger</a>
+            <a href="Reports.aspx"><i class="fas fa-chart-bar"></i> Reports</a>
+        </div>
+        <div class="lib-container">
+            <asp:ContentPlaceHolder ID="cphBody" runat="server">
+            </asp:ContentPlaceHolder>
+        </div>
+    </form>
+</body>
+</html>

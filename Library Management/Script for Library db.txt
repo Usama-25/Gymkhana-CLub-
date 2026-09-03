@@ -1,0 +1,111 @@
+-- 1. Members (Club Members who can borrow)
+CREATE TABLE Members (
+    MemberID       INT IDENTITY(1,1) PRIMARY KEY,
+    MembershipNo   VARCHAR(20) NOT NULL UNIQUE,
+    FullName       NVARCHAR(100) NOT NULL,
+    CNIC           VARCHAR(15),
+    Phone          VARCHAR(20),
+    Email          VARCHAR(100),
+    MemberType     VARCHAR(30) NOT NULL,  -- 'Regular', 'Life', 'Junior', 'Corporate'
+    JoinDate       DATE NOT NULL DEFAULT GETDATE(),
+    IsActive       BIT NOT NULL DEFAULT 1,
+    MaxBooksAllowed INT NOT NULL DEFAULT 3,
+    CreatedAt      DATETIME DEFAULT GETDATE()
+);
+
+-- 2. Book Categories
+CREATE TABLE Categories (
+    CategoryID     INT IDENTITY(1,1) PRIMARY KEY,
+    CategoryName   NVARCHAR(100) NOT NULL UNIQUE,
+    Description    NVARCHAR(255)
+);
+
+-- 3. Books (Master Catalog)
+CREATE TABLE Books (
+    BookID         INT IDENTITY(1,1) PRIMARY KEY,
+    ISBN           VARCHAR(20) UNIQUE,
+    Title          NVARCHAR(200) NOT NULL,
+    Author         NVARCHAR(150) NOT NULL,
+    Publisher      NVARCHAR(150),
+    PublishYear    INT,
+    CategoryID     INT FOREIGN KEY REFERENCES Categories(CategoryID),
+    Language       VARCHAR(50) DEFAULT 'English',
+    TotalCopies    INT NOT NULL DEFAULT 1,
+    AvailableCopies INT NOT NULL DEFAULT 1,
+    ShelfLocation  VARCHAR(50),
+    AddedOn        DATETIME DEFAULT GETDATE(),
+    IsActive       BIT DEFAULT 1
+);
+
+-- 4. Book Copies (Physical copies per book)
+CREATE TABLE BookCopies (
+    CopyID         INT IDENTITY(1,1) PRIMARY KEY,
+    BookID         INT FOREIGN KEY REFERENCES Books(BookID),
+    CopyBarcode    VARCHAR(50) UNIQUE,
+    Condition      VARCHAR(20) DEFAULT 'Good',  -- 'Good','Fair','Damaged','Lost'
+    IsAvailable    BIT DEFAULT 1,
+    AddedOn        DATETIME DEFAULT GETDATE()
+);
+
+-- 5. Borrowing Transactions (Issue / Return)
+CREATE TABLE BorrowTransactions (
+    TransactionID  INT IDENTITY(1,1) PRIMARY KEY,
+    MemberID       INT FOREIGN KEY REFERENCES Members(MemberID),
+    CopyID         INT FOREIGN KEY REFERENCES BookCopies(CopyID),
+    IssueDate      DATETIME NOT NULL DEFAULT GETDATE(),
+    DueDate        DATETIME NOT NULL,
+    ReturnDate     DATETIME NULL,
+    Status         VARCHAR(20) DEFAULT 'Issued',  -- 'Issued','Returned','Overdue','Lost'
+    IssuedBy       NVARCHAR(100),  -- Staff name
+    ReturnedBy     NVARCHAR(100),
+    Remarks        NVARCHAR(255)
+);
+
+-- 6. Fine / Penalties
+CREATE TABLE Fines (
+    FineID         INT IDENTITY(1,1) PRIMARY KEY,
+    TransactionID  INT FOREIGN KEY REFERENCES BorrowTransactions(TransactionID),
+    MemberID       INT FOREIGN KEY REFERENCES Members(MemberID),
+    FineAmount     DECIMAL(10,2) NOT NULL,
+    FineReason     VARCHAR(100),  -- 'Overdue','Lost Book','Damage'
+    IsPaid         BIT DEFAULT 0,
+    PaidOn         DATETIME NULL,
+    CollectedBy    NVARCHAR(100),
+    CreatedAt      DATETIME DEFAULT GETDATE()
+);
+
+-- 7. Reservations
+CREATE TABLE Reservations (
+    ReservationID  INT IDENTITY(1,1) PRIMARY KEY,
+    MemberID       INT FOREIGN KEY REFERENCES Members(MemberID),
+    BookID         INT FOREIGN KEY REFERENCES Books(BookID),
+    ReservedOn     DATETIME DEFAULT GETDATE(),
+    ExpiryDate     DATETIME,
+    Status         VARCHAR(20) DEFAULT 'Active',  -- 'Active','Fulfilled','Cancelled','Expired'
+    NotifiedOn     DATETIME NULL
+);
+
+-- 8. Staff / Users
+CREATE TABLE LibraryStaff (
+    StaffID        INT IDENTITY(1,1) PRIMARY KEY,
+    Username       VARCHAR(50) NOT NULL UNIQUE,
+    PasswordHash   VARCHAR(256) NOT NULL,
+    FullName       NVARCHAR(100) NOT NULL,
+    Role           VARCHAR(30) DEFAULT 'Librarian',  -- 'Admin','Librarian','Assistant'
+    IsActive       BIT DEFAULT 1,
+    CreatedAt      DATETIME DEFAULT GETDATE()
+);
+
+-- 9. System Settings
+CREATE TABLE LibrarySettings (
+    SettingKey     VARCHAR(100) PRIMARY KEY,
+    SettingValue   NVARCHAR(500),
+    Description    NVARCHAR(255)
+);
+
+-- Default settings
+INSERT INTO LibrarySettings VALUES 
+('LoanDurationDays', '14', 'Default loan period in days'),
+('FinePerDay', '10', 'Fine per overdue day in PKR'),
+('MaxRenewals', '2', 'Maximum renewals allowed'),
+('MaxBooksPerMember', '3', 'Max books a member can borrow');

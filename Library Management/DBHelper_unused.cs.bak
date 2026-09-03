@@ -1,0 +1,663 @@
+using System;
+using System.Configuration;
+using System.Data;
+using System.Data.SqlClient;
+using System.Collections.Generic;
+
+/// <summary>
+/// Centralised database access helper for Lahore Gymkhana Library.
+/// All communication uses Stored Procedures â€” no inline SQL.
+/// Aligned with the highly optimized Database Schema v2.0.
+/// </summary>
+public static class DBHelper
+{
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    //  Connection
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    private static string ConnStr
+    {
+        get
+        {
+            return ConfigurationManager.ConnectionStrings["GymkhanaLibraryDB"] != null 
+                ? ConfigurationManager.ConnectionStrings["GymkhanaLibraryDB"].ConnectionString 
+                : "Data Source=.\\LOCALHOST;Initial Catalog=GymkhanaLibraryDB;Integrated Security=True;TrustServerCertificate=True;";
+        }
+    }
+
+    private static SqlConnection GetConnection()
+    {
+        return new SqlConnection(ConnStr);
+    }
+
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    //  Execute SP â†’ DataTable  (SELECT results)
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    public static DataTable ExecuteReader(string spName, params SqlParameter[] prms)
+    {
+        var dt = new DataTable();
+        using (var con = GetConnection())
+        using (var cmd = new SqlCommand(spName, con) { CommandType = CommandType.StoredProcedure })
+        using (var da  = new SqlDataAdapter(cmd))
+        {
+            if (prms != null) cmd.Parameters.AddRange(prms);
+            con.Open();
+            da.Fill(dt);
+        }
+        return dt;
+    }
+
+    // Execute SP â†’ DataSet  (multiple result sets, e.g. sp_GetBookDetail)
+    public static DataSet ExecuteDataSet(string spName, params SqlParameter[] prms)
+    {
+        var ds = new DataSet();
+        using (var con = GetConnection())
+        using (var cmd = new SqlCommand(spName, con) { CommandType = CommandType.StoredProcedure })
+        using (var da  = new SqlDataAdapter(cmd))
+        {
+            if (prms != null) cmd.Parameters.AddRange(prms);
+            con.Open();
+            da.Fill(ds);
+        }
+        return ds;
+    }
+
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    //  Execute SP â†’ no return value (fire-and-forget DML)
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    public static void ExecuteNonQuery(string spName, params SqlParameter[] prms)
+    {
+        using (var con = GetConnection())
+        using (var cmd = new SqlCommand(spName, con) { CommandType = CommandType.StoredProcedure })
+        {
+            if (prms != null) cmd.Parameters.AddRange(prms);
+            con.Open();
+            cmd.ExecuteNonQuery();
+        }
+    }
+
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    //  Helper: get OUTPUT param value from a parameter array
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    public static T GetOutputValue<T>(SqlParameter[] prms, string paramName)
+    {
+        foreach (var p in prms)
+            if (p.ParameterName.Equals(paramName, StringComparison.OrdinalIgnoreCase))
+                return (p.Value == null || p.Value == DBNull.Value) ? default(T) : (T)Convert.ChangeType(p.Value, typeof(T));
+        return default(T);
+    }
+
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    //  Helper: Run direct query for dropdowns (failsafe lookup)
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    public static DataTable GetTableData(string query)
+    {
+        var dt = new DataTable();
+        using (var con = GetConnection())
+        using (var cmd = new SqlCommand(query, con))
+        using (var da = new SqlDataAdapter(cmd))
+        {
+            con.Open();
+            da.Fill(dt);
+        }
+        return dt;
+    }
+
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    //  Business Methods: Books
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    public static SaveBookResult SaveBook(
+        int? bookID, string isbn13, string isbn10,
+        string title, string subTitle, short catID,
+        short? pubID, byte langID, short? pubYear,
+        string edition, short? pageCount, string classNo,
+        string tags, string synopsis, string coverFile, short staffID)
+    {
+        var prms = new[]
+        {
+            new SqlParameter("@BookID",          (object)bookID      ?? DBNull.Value),
+            new SqlParameter("@ISBN13",           isbn13),
+            new SqlParameter("@ISBN10",           (object)isbn10      ?? DBNull.Value),
+            new SqlParameter("@Title",            title),
+            new SqlParameter("@SubTitle",         (object)subTitle    ?? DBNull.Value),
+            new SqlParameter("@CatID",            catID),
+            new SqlParameter("@PubID",            (object)pubID       ?? DBNull.Value),
+            new SqlParameter("@LangID",           langID),
+            new SqlParameter("@PubYear",          (object)pubYear     ?? DBNull.Value),
+            new SqlParameter("@Edition",          (object)edition     ?? DBNull.Value),
+            new SqlParameter("@PageCount",        (object)pageCount   ?? DBNull.Value),
+            new SqlParameter("@ClassNo",          (object)classNo     ?? DBNull.Value),
+            new SqlParameter("@Tags",             (object)tags        ?? DBNull.Value),
+            new SqlParameter("@Synopsis",         (object)synopsis    ?? DBNull.Value),
+            new SqlParameter("@CoverFile",        (object)coverFile   ?? DBNull.Value),
+            new SqlParameter("@StaffID",          staffID),
+            new SqlParameter("@NewBookID", SqlDbType.Int) { Direction = ParameterDirection.Output },
+            new SqlParameter("@Msg",       SqlDbType.VarChar, 200) { Direction = ParameterDirection.Output }
+        };
+
+        using (var con = GetConnection())
+        using (var cmd = new SqlCommand("sp_SaveBook", con) { CommandType = CommandType.StoredProcedure })
+        {
+            cmd.Parameters.AddRange(prms);
+            con.Open();
+            cmd.ExecuteNonQuery();
+        }
+        int newID = GetOutputValue<int>(prms, "@NewBookID");
+        string result = GetOutputValue<string>(prms, "@Msg");
+        return new SaveBookResult { NewBookID = newID, Result = result };
+    }
+
+    public static AddBookCopyResult AddBookCopy(
+        int bookID, short? rackID, byte? slotNo,
+        byte condID, decimal? cost, string notes)
+    {
+        var prms = new[]
+        {
+            new SqlParameter("@BookID",   bookID),
+            new SqlParameter("@RackID",   (object)rackID  ?? DBNull.Value),
+            new SqlParameter("@SlotNo",   (object)slotNo  ?? DBNull.Value),
+            new SqlParameter("@CondID",   condID),
+            new SqlParameter("@AcqCost",  (object)cost    ?? DBNull.Value),
+            new SqlParameter("@Notes",    (object)notes   ?? DBNull.Value),
+            new SqlParameter("@CopyID",   SqlDbType.Int) { Direction = ParameterDirection.Output },
+            new SqlParameter("@Barcode",  SqlDbType.VarChar, 60) { Direction = ParameterDirection.Output },
+            new SqlParameter("@Msg",      SqlDbType.VarChar, 200) { Direction = ParameterDirection.Output }
+        };
+
+        using (var con = GetConnection())
+        using (var cmd = new SqlCommand("sp_AddCopy", con) { CommandType = CommandType.StoredProcedure })
+        {
+            cmd.Parameters.AddRange(prms);
+            con.Open();
+            cmd.ExecuteNonQuery();
+        }
+        string barcodeVal = GetOutputValue<string>(prms, "@Barcode");
+        int copyID = GetOutputValue<int>(prms, "@CopyID");
+        string msg = GetOutputValue<string>(prms, "@Msg");
+        return new AddBookCopyResult
+        {
+            CopyID = copyID,
+            Barcode = barcodeVal != null ? barcodeVal.Trim() : null,
+            Result = msg
+        };
+    }
+
+    public static string IssueBook(int memberID, int copyID, short staffID, DateTime? issueDate = null, DateTime? dueDate = null)
+    {
+        var prms = new[]
+        {
+            new SqlParameter("@MemberID",  memberID),
+            new SqlParameter("@CopyID",    copyID),
+            new SqlParameter("@StaffID",   staffID),
+            new SqlParameter("@Msg",       SqlDbType.VarChar, 200) { Direction = ParameterDirection.Output },
+            new SqlParameter("@IssueDate", (object)issueDate ?? DBNull.Value),
+            new SqlParameter("@DueDate",   (object)dueDate   ?? DBNull.Value)
+        };
+        using (var con = GetConnection())
+        using (var cmd = new SqlCommand("sp_IssueBook", con) { CommandType = CommandType.StoredProcedure })
+        {
+            cmd.Parameters.AddRange(prms);
+            con.Open();
+            cmd.ExecuteNonQuery();
+        }
+        return GetOutputValue<string>(prms, "@Msg");
+    }
+
+    public static string ReturnBook(int copyID, short staffID, byte condID = 2)
+    {
+        var prms = new[]
+        {
+            new SqlParameter("@CopyID",  copyID),
+            new SqlParameter("@StaffID", staffID),
+            new SqlParameter("@CondID",  condID),
+            new SqlParameter("@Msg",     SqlDbType.VarChar, 200) { Direction = ParameterDirection.Output }
+        };
+        using (var con = GetConnection())
+        using (var cmd = new SqlCommand("sp_ReturnBook", con) { CommandType = CommandType.StoredProcedure })
+        {
+            cmd.Parameters.AddRange(prms);
+            con.Open();
+            cmd.ExecuteNonQuery();
+        }
+        return GetOutputValue<string>(prms, "@Msg");
+    }
+
+    public static string ReturnCollectReissue(int copyID, short staffID, byte condID, int? reissueToMemberID, DateTime? issueDate, DateTime? dueDate, bool collectFines)
+    {
+        var prms = new[]
+        {
+            new SqlParameter("@CopyID",             copyID),
+            new SqlParameter("@StaffID",            staffID),
+            new SqlParameter("@CondID",             condID),
+            new SqlParameter("@ReissueToMemberID",  (object)reissueToMemberID ?? DBNull.Value),
+            new SqlParameter("@IssueDate",          (object)issueDate         ?? DBNull.Value),
+            new SqlParameter("@DueDate",            (object)dueDate           ?? DBNull.Value),
+            new SqlParameter("@CollectFines",       collectFines),
+            new SqlParameter("@Msg",                SqlDbType.VarChar, 200) { Direction = ParameterDirection.Output }
+        };
+        using (var con = GetConnection())
+        using (var cmd = new SqlCommand("sp_ReturnCollectReissue", con) { CommandType = CommandType.StoredProcedure })
+        {
+            cmd.Parameters.AddRange(prms);
+            con.Open();
+            cmd.ExecuteNonQuery();
+        }
+        return GetOutputValue<string>(prms, "@Msg");
+    }
+
+
+    public static string RenewBook(int loanID, short staffID)
+    {
+        var prms = new[]
+        {
+            new SqlParameter("@LoanID",  loanID),
+            new SqlParameter("@StaffID", staffID),
+            new SqlParameter("@Msg",     SqlDbType.VarChar, 200) { Direction = ParameterDirection.Output }
+        };
+        using (var con = GetConnection())
+        using (var cmd = new SqlCommand("sp_RenewLoan", con) { CommandType = CommandType.StoredProcedure })
+        {
+            cmd.Parameters.AddRange(prms);
+            con.Open();
+            cmd.ExecuteNonQuery();
+        }
+        return GetOutputValue<string>(prms, "@Msg");
+    }
+
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    //  Business Methods: Queries & Reports
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    public static DataTable SearchBooks(string term, short? catID, byte? langID, short? pubID, short? yearFrom, short? yearTo, bool availOnly, short? rackID, int? pageNumber = null, int? pageSize = null)
+    {
+        var prms = new[]
+        {
+            new SqlParameter("@Term",      (object)term       ?? DBNull.Value),
+            new SqlParameter("@CatID",     (object)catID      ?? DBNull.Value),
+            new SqlParameter("@LangID",    (object)langID     ?? DBNull.Value),
+            new SqlParameter("@PubID",     (object)pubID      ?? DBNull.Value),
+            new SqlParameter("@YearFrom",  (object)yearFrom   ?? DBNull.Value),
+            new SqlParameter("@YearTo",    (object)yearTo     ?? DBNull.Value),
+            new SqlParameter("@AvailOnly", availOnly),
+            new SqlParameter("@RackID",    (object)rackID     ?? DBNull.Value),
+            new SqlParameter("@PageNumber", (object)pageNumber ?? DBNull.Value),
+            new SqlParameter("@PageSize",   (object)pageSize   ?? DBNull.Value)
+        };
+        return ExecuteReader("sp_SearchBooks", prms);
+    }
+
+    public static DataSet GetBookDetail(int bookID)
+    {
+        return ExecuteDataSet("sp_GetBookDetail", new SqlParameter("@BookID", bookID));
+    }
+
+    public static DataTable GetDashboardStats()
+    {
+        return ExecuteReader("sp_DashboardStats");
+    }
+
+    public static DataTable GetOverdueReport()
+    {
+        return ExecuteReader("sp_GetOverdueReport");
+    }
+
+    public static DataTable GetRackOccupancy(short? hallID = null)
+    {
+        return ExecuteReader("sp_RackOccupancy", new SqlParameter("@HallID", (object)hallID ?? DBNull.Value));
+    }
+
+    public static DataTable GetMemberLoans(int memberID, bool activeOnly = false)
+    {
+        return ExecuteReader("sp_GetMemberLoans", 
+            new SqlParameter("@MemberID", memberID),
+            new SqlParameter("@ActiveOnly", activeOnly));
+    }
+
+    // ────────────────────────────────────────────────────────────
+    //  Business Methods: Reports
+    // ────────────────────────────────────────────────────────────
+    public static DataTable GetReportAuthorWise(int? authorID = null)
+    {
+        var prms = new[]
+        {
+            new SqlParameter("@AuthorID", (object)authorID ?? DBNull.Value)
+        };
+        return ExecuteReader("dbo.sp_Report_AuthorWise", prms);
+    }
+
+    public static DataTable GetReportPublisherWise(int? pubID = null)
+    {
+        var prms = new[]
+        {
+            new SqlParameter("@PubID", (object)pubID ?? DBNull.Value)
+        };
+        return ExecuteReader("dbo.sp_Report_PublisherWise", prms);
+    }
+
+    public static DataTable GetReportEditionWise()
+    {
+        return ExecuteReader("dbo.sp_Report_EditionWise");
+    }
+
+    public static DataTable GetReportLanguageWise(byte? langID = null)
+    {
+        var prms = new[]
+        {
+            new SqlParameter("@LangID", (object)langID ?? DBNull.Value)
+        };
+        return ExecuteReader("dbo.sp_Report_LanguageWise", prms);
+    }
+
+    public static DataTable GetReportBookIssuance(DateTime? fromDate, DateTime? toDate)
+    {
+        var prms = new[]
+        {
+            new SqlParameter("@FromDate", (object)fromDate ?? DBNull.Value),
+            new SqlParameter("@ToDate",   (object)toDate   ?? DBNull.Value)
+        };
+        return ExecuteReader("dbo.sp_Report_BookIssuance", prms);
+    }
+
+    public static DataTable GetReportIssuedNotReturned()
+    {
+        return ExecuteReader("dbo.sp_Report_IssuedNotReturned");
+    }
+
+    public static DataTable GetReportFines(DateTime? fromDate, DateTime? toDate, bool? paidOnly)
+    {
+        var prms = new[]
+        {
+            new SqlParameter("@FromDate", (object)fromDate ?? DBNull.Value),
+            new SqlParameter("@ToDate",   (object)toDate   ?? DBNull.Value),
+            new SqlParameter("@PaidOnly", (object)paidOnly   ?? DBNull.Value)
+        };
+        return ExecuteReader("dbo.sp_Report_Fines", prms);
+    }
+
+    public static DataTable GetReportMemberWise(int? memberID)
+    {
+        var prms = new[]
+        {
+            new SqlParameter("@MemberID", (object)memberID ?? DBNull.Value)
+        };
+        return ExecuteReader("dbo.sp_Report_MemberWise", prms);
+    }
+
+    public static DataTable GetReportBooks()
+    {
+        return ExecuteReader("dbo.sp_Report_Books");
+    }
+
+    // ────────────────────────────────────────────────────────────
+    //  Lookups for DropDowns
+    // ────────────────────────────────────────────────────────────
+    public static DataTable GetCategories()
+    {
+        return GetTableData("SELECT CatID, CatName FROM Categories WHERE IsActive = 1 ORDER BY CatName");
+    }
+
+    public static DataTable GetPublishers()
+    {
+        return GetTableData("SELECT PubID, PubName FROM Publishers WHERE IsActive = 1 ORDER BY PubName");
+    }
+
+    public static DataTable GetAuthors()
+    {
+        return GetTableData("SELECT AuthorID, FullName FROM Authors WHERE IsActive = 1 ORDER BY FullName");
+    }
+
+    public static DataTable GetLanguages()
+    {
+        return GetTableData("SELECT LangID, LangCode, LangName FROM Languages ORDER BY LangName");
+    }
+
+    public static DataTable GetHalls()
+    {
+        return GetTableData("SELECT HallID, HallCode + ' - ' + HallName AS HallDisplay FROM Halls WHERE IsActive = 1 ORDER BY HallName");
+    }
+
+    public static DataTable GetAisles(short hallID)
+    {
+        return GetTableData("SELECT UnitID AS AisleID, UnitCode + ' (' + ISNULL(UnitName, 'Unit') + ')' AS AisleDisplay FROM ShelfUnits WHERE HallID = " + hallID + " ORDER BY UnitCode");
+    }
+
+    public static DataTable GetShelfUnits(int unitID)
+    {
+        return GetTableData("SELECT RackID AS ShelfUnitID, 'Rack ' + CAST(RackNo AS VARCHAR) + ' - ' + ISNULL(SubjectTag, '') AS ShelfUnitCode FROM Racks WHERE UnitID = " + unitID + " ORDER BY RackNo");
+    }
+
+    public static DataTable GetRacks(int rackID)
+    {
+        return GetTableData("SELECT RackID, 'Visual Slots Mapping' AS RackDisplay, TotalSlots FROM Racks WHERE RackID = " + rackID);
+    }
+
+    public static DataTable GetMembers(string search = null)
+    {
+        if (string.IsNullOrEmpty(search))
+        {
+            return GetTableData("SELECT TOP 100 MemberID, MemberNo AS MembershipNo, MemberName AS FullName, MemberNo + ' - ' + MemberName AS MemberDisplay FROM MemberShip.dbo.MemberProfile WHERE IsActive = 1 ORDER BY MemberName");
+        }
+        else
+        {
+            return GetTableData("SELECT MemberID, MemberNo AS MembershipNo, MemberName AS FullName, MemberNo + ' - ' + MemberName AS MemberDisplay FROM MemberShip.dbo.MemberProfile WHERE IsActive = 1 AND (MemberNo LIKE '%" + search.Replace("'", "''") + "%' OR MemberName LIKE '%" + search.Replace("'", "''") + "%') ORDER BY MemberName");
+        }
+    }
+
+    public static DataTable GetCopyConditions()
+    {
+        return GetTableData("SELECT CondID, CondName FROM CopyConditions ORDER BY CondID");
+    }
+
+    public static DataTable GetStaffList()
+    {
+        return GetTableData("SELECT StaffID, FullName, Username FROM Staff WHERE IsActive = 1 ORDER BY FullName");
+    }
+
+    /// <summary>
+    /// Returns the occupancy grid list of 1 to TotalSlots with IsOccupied indicator for slot mapping.
+    /// </summary>
+    public static DataTable GetRackSlots(short rackID, int totalSlots)
+    {
+        var dt = new DataTable();
+        dt.Columns.Add("SlotNumber", typeof(int));
+        dt.Columns.Add("IsOccupied", typeof(bool));
+        dt.Columns.Add("BookTitle", typeof(string));
+        dt.Columns.Add("RackID", typeof(short));
+
+        // Get occupied slots in this rack
+        var occupiedDt = GetTableData("SELECT cp.SlotNo, b.Title FROM BookCopies cp JOIN Books b ON cp.BookID = b.BookID WHERE cp.RackID = " + rackID + " AND cp.SlotNo IS NOT NULL");
+
+        var occupied = new Dictionary<int, string>();
+        foreach (DataRow row in occupiedDt.Rows)
+        {
+            int slot = Convert.ToInt32(row["SlotNo"]);
+            occupied[slot] = row["Title"] != DBNull.Value && row["Title"] != null ? row["Title"].ToString() : "";
+        }
+
+        for (int i = 1; i <= totalSlots; i++)
+        {
+            var r = dt.NewRow();
+            r["SlotNumber"] = i;
+            r["IsOccupied"] = occupied.ContainsKey(i);
+            r["BookTitle"] = occupied.ContainsKey(i) ? occupied[i] : "";
+            r["RackID"] = rackID;
+            dt.Rows.Add(r);
+        }
+
+        return dt;
+    }
+
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    //  Define / Setup Helpers (Stored Procedures Only)
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    public static string DefineAuthor(string firstName, string lastName, string nationality)
+    {
+        var prms = new[]
+        {
+            new SqlParameter("@FirstName", firstName),
+            new SqlParameter("@LastName", lastName),
+            new SqlParameter("@Nationality", (object)nationality ?? DBNull.Value),
+            new SqlParameter("@Msg", SqlDbType.NVarChar, 200) { Direction = ParameterDirection.Output }
+        };
+        ExecuteNonQuery("sp_DefineAuthor", prms);
+        return GetOutputValue<string>(prms, "@Msg");
+    }
+
+    public static string DefineStaffRole(string roleName)
+    {
+        var prms = new[]
+        {
+            new SqlParameter("@RoleName", roleName),
+            new SqlParameter("@Msg", SqlDbType.NVarChar, 200) { Direction = ParameterDirection.Output }
+        };
+        ExecuteNonQuery("sp_DefineStaffRole", prms);
+        return GetOutputValue<string>(prms, "@Msg");
+    }
+
+    public static string DefineCategory(string catCode, string catName, short? parentCatID)
+    {
+        var prms = new[]
+        {
+            new SqlParameter("@CatCode", catCode),
+            new SqlParameter("@CatName", catName),
+            new SqlParameter("@ParentCatID", (object)parentCatID ?? DBNull.Value),
+            new SqlParameter("@Msg", SqlDbType.NVarChar, 200) { Direction = ParameterDirection.Output }
+        };
+        ExecuteNonQuery("sp_DefineCategory", prms);
+        return GetOutputValue<string>(prms, "@Msg");
+    }
+
+    public static string DefinePublisher(string pubName, string country)
+    {
+        var prms = new[]
+        {
+            new SqlParameter("@PubName", pubName),
+            new SqlParameter("@Country", (object)country ?? DBNull.Value),
+            new SqlParameter("@Msg", SqlDbType.NVarChar, 200) { Direction = ParameterDirection.Output }
+        };
+        ExecuteNonQuery("sp_DefinePublisher", prms);
+        return GetOutputValue<string>(prms, "@Msg");
+    }
+
+    public static string DefineHall(string hallCode, string hallName, byte floorNo)
+    {
+        var prms = new[]
+        {
+            new SqlParameter("@HallCode", hallCode),
+            new SqlParameter("@HallName", hallName),
+            new SqlParameter("@FloorNo", floorNo),
+            new SqlParameter("@Msg", SqlDbType.NVarChar, 200) { Direction = ParameterDirection.Output }
+        };
+        ExecuteNonQuery("sp_DefineHall", prms);
+        return GetOutputValue<string>(prms, "@Msg");
+    }
+
+    public static string DefineShelfUnit(short hallID, string unitCode, string unitName)
+    {
+        var prms = new[]
+        {
+            new SqlParameter("@HallID", hallID),
+            new SqlParameter("@UnitCode", unitCode),
+            new SqlParameter("@UnitName", (object)unitName ?? DBNull.Value),
+            new SqlParameter("@Msg", SqlDbType.NVarChar, 200) { Direction = ParameterDirection.Output }
+        };
+        ExecuteNonQuery("sp_DefineShelfUnit", prms);
+        return GetOutputValue<string>(prms, "@Msg");
+    }
+
+    public static string DefineRack(short unitID, byte rackNo, byte totalSlots, string subjectTag)
+    {
+        var prms = new[]
+        {
+            new SqlParameter("@UnitID", unitID),
+            new SqlParameter("@RackNo", rackNo),
+            new SqlParameter("@TotalSlots", totalSlots),
+            new SqlParameter("@SubjectTag", (object)subjectTag ?? DBNull.Value),
+            new SqlParameter("@Msg", SqlDbType.NVarChar, 200) { Direction = ParameterDirection.Output }
+        };
+        ExecuteNonQuery("sp_DefineRack", prms);
+        return GetOutputValue<string>(prms, "@Msg");
+    }
+
+    public static string DefineLanguage(string langCode, string langName)
+    {
+        var prms = new[]
+        {
+            new SqlParameter("@LangCode", langCode),
+            new SqlParameter("@LangName", langName),
+            new SqlParameter("@Msg", SqlDbType.NVarChar, 200) { Direction = ParameterDirection.Output }
+        };
+        ExecuteNonQuery("sp_DefineLanguage", prms);
+        return GetOutputValue<string>(prms, "@Msg");
+    }
+
+    public static DataTable GetFloors()
+    {
+        return GetTableData("SELECT FloorNo, FloorName FROM Floors ORDER BY FloorNo");
+    }
+
+    public static string DefineFloor(byte floorNo, string floorName)
+    {
+        var prms = new[]
+        {
+            new SqlParameter("@FloorNo", floorNo),
+            new SqlParameter("@FloorName", floorName),
+            new SqlParameter("@Msg", SqlDbType.NVarChar, 200) { Direction = ParameterDirection.Output }
+        };
+        ExecuteNonQuery("sp_DefineFloor", prms);
+        return GetOutputValue<string>(prms, "@Msg");
+    }
+
+    public static DataTable SearchBooksAdvanced(
+        string term, string author, string bookName, 
+        string edition, short? pubID, short? catID, 
+        byte? langID, short? year)
+    {
+        var prms = new[]
+        {
+            new SqlParameter("@Term",      (object)term     ?? DBNull.Value),
+            new SqlParameter("@Author",    (object)author   ?? DBNull.Value),
+            new SqlParameter("@BookName",  (object)bookName ?? DBNull.Value),
+            new SqlParameter("@Edition",   (object)edition  ?? DBNull.Value),
+            new SqlParameter("@PubID",     (object)pubID    ?? DBNull.Value),
+            new SqlParameter("@CatID",     (object)catID    ?? DBNull.Value),
+            new SqlParameter("@LangID",    (object)langID   ?? DBNull.Value),
+            new SqlParameter("@Year",      (object)year     ?? DBNull.Value)
+        };
+        return ExecuteReader("sp_SearchBooksAdvanced", prms);
+    }
+
+    public static string GetNextISBNSuffix(string basePrefix)
+    {
+        string query = "SELECT ISBN13 FROM Books WHERE ISBN13 LIKE '" + basePrefix.Replace("'", "''") + "%'";
+        DataTable dt = GetTableData(query);
+        int maxSeq = 0;
+        foreach (DataRow row in dt.Rows)
+        {
+            string isbn = row["ISBN13"].ToString();
+            if (isbn.StartsWith(basePrefix))
+            {
+                string suffixPart = isbn.Substring(basePrefix.Length);
+                suffixPart = System.Text.RegularExpressions.Regex.Replace(suffixPart, "[^0-9]", "");
+                int seq;
+                if (int.TryParse(suffixPart, out seq))
+                {
+                    if (seq > maxSeq) maxSeq = seq;
+                }
+            }
+        }
+        return (maxSeq + 1).ToString("000");
+    }
+}
+
+public class SaveBookResult
+{
+    public int NewBookID { get; set; }
+    public string Result { get; set; }
+}
+
+public class AddBookCopyResult
+{
+    public int CopyID { get; set; }
+    public string Barcode { get; set; }
+    public string Result { get; set; }
+}
+

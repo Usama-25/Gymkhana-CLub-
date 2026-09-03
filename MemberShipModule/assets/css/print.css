@@ -1,0 +1,104 @@
+/* Print Styles */
+@media print {
+    @page {
+        size: A4;
+        margin: 10mm;
+    }
+
+    body {
+        margin: 0;
+        padding: 0;
+        background: white;
+        font-family: 'Inter', sans-serif;
+        color: black;
+    }
+
+    /* Hide non-printable elements */
+    .sidebar,
+    .user-menu,
+    .btn,
+    .main-footer,
+    .no-print,
+    .app-container>nav,
+    .top-header,
+    button {
+        display: none !important;
+    }
+
+    /* Reset layout for print */
+    .app-container,
+    .main-wrapper,
+    .content-area,
+    .page-wrapper {
+        display: block !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        height: auto !important;
+        overflow: visible !important;
+    }
+
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+    }
+
+    /* Table Styles for Print */
+    .table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+
+    .table th,
+    .table td {
+        border: 1px solid #ddd !important;
+        padding: 8px !important;
+        color: black !important;
+        font-size: 10pt !important;
+    }
+
+    .table th {
+        background-color: #f8f9fa !important;
+        font-weight: bold !important;
+    }
+
+    /* Report Header */
+    .report-header {
+        display: block !important;
+        text-align: center;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #000;
+    }
+
+    .report-logo {
+        height: 100px;
+        width: auto;
+        max-width: 100%;
+        margin-bottom: 10px;
+    }
+
+    .report-title {
+        font-size: 18pt !important;
+        font-weight: bold;
+        margin: 0;
+    }
+
+    .report-date {
+        font-size: 10pt;
+        color: #666;
+        margin-top: 5px;
+    }
+
+    /* Links */
+    a {
+        text-decoration: none !important;
+        color: black !important;
+    }
+}
+
+/* Screen styles for report header (hidden by default on screen if desired, or styled differently) */
+.report-header-screen {
+    display: none;
+}

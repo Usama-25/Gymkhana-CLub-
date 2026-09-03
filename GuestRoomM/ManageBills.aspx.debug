@@ -1,0 +1,735 @@
+using System;
+using System.Configuration;
+using System.Data;
+using System.Data.SqlClient;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+using System.Text;  // ← ADD THIS for StringBuilder
+
+namespace GuestRoomApp.GuestRoomM
+{
+    public partial class ManageBills : System.Web.UI.Page
+    {
+    private string connStr = ConfigurationManager.ConnectionStrings["GuestRoomDBConnectionString"].ConnectionString;
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        if (!IsPostBack)
+        {
+            LoadBillsHistory(null);
+            pnlBillForm.Visible = false;
+        }
+    }
+
+    // SEARCH RESERVATION
+    protected void btnSearchRes_Click(object sender, EventArgs e)
+    {
+        string search = txtSearchRes.Text.Trim();
+        if (string.IsNullOrEmpty(search)) { ShowMessage("Please enter Reservation No or Receipt No.", false); return; }
+        LoadReservationDetails(search);
+    }
+
+    private void LoadReservationDetails(string searchNo)
+    {
+        try
+        {
+            using (SqlConnection con = new SqlConnection(connStr))
+            using (SqlCommand cmd = new SqlCommand("sp_GR_GetReservationForBill", con))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@SearchNo", searchNo);
+                con.Open();
+                string resNo = "", recNo = "", guest = "", guestOf = "", club = "", status = "", allocRooms = "", existBill = "";
+                int rooms = 0; DateTime from = DateTime.MinValue, to = DateTime.MinValue;
+                decimal rent = 0, taxPct = 0;
+
+                using (SqlDataReader dr = cmd.ExecuteReader())
+                {
+                    if (!dr.Read())
+                    {
+                        ShowMessage("Reservation not found: " + searchNo, false);
+                        pnlBillForm.Visible = false;
+                        return;
+                    }
+
+                    resNo = dr["ReservationNo"].ToString();
+                    recNo = dr["ReceiptNo"].ToString();
+                    guest = dr["GuestName"].ToString();
+                    guestOf = dr["GuestOf"].ToString();
+                    club = dr["ClubName"].ToString();
+                    status = dr["Status"].ToString();
+                    rooms = Convert.ToInt32(dr["NoOfRooms"]);
+                    from = Convert.ToDateTime(dr["FromDate"]);
+                    to = Convert.ToDateTime(dr["ToDate"]);
+                    rent = Convert.ToDecimal(dr["RentPerRoom"]);
+                    taxPct = Convert.ToDecimal(dr["TaxPercent"]);
+                    allocRooms = dr["AllocatedRooms"].ToString();
+                    existBill = dr["ExistingBillNo"].ToString();
+                }
+
+                int nights = (to - from).Days;
+                if (nights < 1) nights = 1;
+
+                decimal advance = 0;
+                // Fetch total advance for the reservation group to avoid splitting issues (Phase 2)
+                using (SqlCommand cmdSum = new SqlCommand("SELECT ISNULL(SUM(AdvancePayment),0) FROM RoomReservations WHERE ReservationNo = @ResNo", con))
+                {
+                    cmdSum.Parameters.AddWithValue("@ResNo", resNo);
+                    advance = Convert.ToDecimal(cmdSum.ExecuteScalar());
+                }
+                
+                double weightedNights = 0;
+                decimal totalAccurateRent = 0;
+                StringBuilder sbDesc = new StringBuilder();
+                int actualCount = 0;
+
+                CalculateDetailedStay(resNo, "0", to, out actualCount, out weightedNights, out totalAccurateRent, out sbDesc);
+
+                if (actualCount > 0)
+                {
+                    rooms = actualCount;
+                    double avgNights = weightedNights / actualCount;
+                    nights = (int)Math.Ceiling(avgNights); 
+                    
+                    if (rooms > 0 && nights > 0)
+                        rent = totalAccurateRent / (rooms * (decimal)avgNights);
+                    
+                    txtNoOfNights.Text = avgNights.ToString("0.##");
+                }
+                else
+                {
+                    sbDesc.Append("No allocations found");
+                    totalAccurateRent = (rooms * nights * rent);
+                }
+                
+                hfRoomDescription.Value = sbDesc.ToString();
+                // existBill captured and reader closed earlier
+                
+                // Set labels
+                lblGuestName.Text = guest;
+                lblGuestOf.Text = guestOf;
+                lblClubName.Text = string.IsNullOrEmpty(club) ? "" : club;
+                lblResNo.Text = resNo;
+                lblRecNo.Text = recNo;
+                lblResStatus.Text = status;
+                
+                // Set hidden fields for state persistence
+                hfReservationNo.Value = resNo;
+                hfReceiptNo.Value = recNo;
+                lblAllocRooms.Text = string.IsNullOrEmpty(allocRooms) ? "Not allocated yet" : allocRooms;
+                lblFromDate.Text = from.ToString("dd-MMM-yyyy");
+                lblToDate.Text = to.ToString("dd-MMM-yyyy");
+
+                // Set form fields
+                txtNoOfRooms.Text = rooms.ToString();
+                txtNoOfNights.Text = nights.ToString();
+                txtRentPerNight.Text = rent.ToString("0");
+                txtTaxPercent.Text = taxPct.ToString("0");
+                // Fetch total credit (Initial Advance + Interim Payments from GR_Bills)
+                decimal totalAdvance = advance;
+                try
+                {
+                    using (SqlCommand cmdPaid = new SqlCommand("SELECT ISNULL(SUM(AmountPaid), 0) FROM GR_Bills WHERE ReservationNo = @ResNo AND BillNo LIKE 'ADV-MID-%'", con))
+                    {
+                        cmdPaid.Parameters.AddWithValue("@ResNo", resNo);
+                        totalAdvance += Convert.ToDecimal(cmdPaid.ExecuteScalar());
+                    }
+                }
+                catch { }
+
+                txtAdvancePaid.Text = totalAdvance.ToString("0");
+                hfAdvancePaid.Value = totalAdvance.ToString("0");
+
+                // Bill No display
+                lblBillNo.Text = string.IsNullOrEmpty(existBill) ? "NEW BILL" : existBill;
+
+                // Load existing or find pending
+                if (!string.IsNullOrEmpty(existBill))
+                {
+                    LoadExistingBill(existBill, con);
+                }
+                
+                // ALWAYS append any additional service charges that are still 'Pending' in the facility module
+                // This ensures that even if a bill is re-loaded, new services from the facility are not missed.
+                decimal existingOther = 0;
+                decimal.TryParse(txtOtherCharges.Text, out existingOther);
+                decimal pendingServices = GetPendingServiceCharges(resNo, "0");
+                txtOtherCharges.Text = (existingOther + pendingServices).ToString("0");
+
+                // Update Ledger Link
+                lnkLedger.NavigateUrl = "GuestLedger.aspx?ResNo=" + resNo;
+                lnkLedger.Visible = true;
+
+                // Populate Rooms Dropdown and sync Allocated Rooms display
+                PopulateRoomsDropdown(resNo);
+
+                pnlBillForm.Visible = true;
+
+                // Trigger JS calc on page load
+                ClientScript.RegisterStartupScript(GetType(), "calc", "calcBill();", true);
+            }
+        }
+        catch (Exception ex) { ShowMessage("Error: " + ex.Message, false); }
+    }
+
+    private void PopulateRoomsDropdown(string resNo)
+    {
+        ddlBillRooms.Items.Clear();
+        ddlBillRooms.Items.Add(new ListItem(" — All Allocated Rooms — ", "0"));
+
+        using (SqlConnection con = new SqlConnection(connStr))
+        {
+            // Fetch physical rooms and their checkout status
+            string sql = "SELECT RoomNo, CheckOutDate FROM RoomAllocations WHERE ReservationNo = @Res ORDER BY RoomNo";
+            using (SqlCommand cmd = new SqlCommand(sql, con))
+            {
+                cmd.Parameters.AddWithValue("@Res", resNo);
+                con.Open();
+                StringBuilder sbRooms = new StringBuilder();
+                using (SqlDataReader dr = cmd.ExecuteReader())
+                {
+                    while (dr.Read())
+                    {
+                        string r = dr["RoomNo"].ToString();
+                        bool isCheckedOut = dr["CheckOutDate"] != DBNull.Value;
+                        string label = isCheckedOut ? string.Format("Room {0} (COMPLETED)", r) : string.Format("Room {0} (OCCUPIED)", r);
+                        
+                        ddlBillRooms.Items.Add(new ListItem(label, r));
+
+                        if (sbRooms.Length > 0) sbRooms.Append(", ");
+                        sbRooms.Append(r);
+                    }
+                }
+                // Sync the info label too
+                lblAllocRooms.Text = sbRooms.Length > 0 ? sbRooms.ToString() : "Not allocated yet";
+            }
+        }
+    }
+
+        protected void ddlBillRooms_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            string resNo = hfReservationNo.Value;
+            if (string.IsNullOrEmpty(resNo)) return;
+            string selectedRoom = ddlBillRooms.SelectedValue;
+            double sNights = 0; decimal sRent = 0; int sCount = 0; StringBuilder sDesc = new StringBuilder();
+            DateTime toD = DateTime.Parse(lblToDate.Text);
+
+            if (selectedRoom == "0") // All Rooms
+            {
+                LoadReservationDetails(resNo);
+                lblBillNo.Text = "NEW BILL"; // Reset to new if switching
+                return; 
+            }
+            else // Specific Room
+            {
+                CalculateDetailedStay(resNo, selectedRoom.Trim(), toD, out sCount, out sNights, out sRent, out sDesc);
+                
+                txtNoOfRooms.Text = "1";
+                txtNoOfNights.Text = sNights.ToString("0.##");
+                
+                decimal rate, tax; string descClean;
+                FetchRoomRate(selectedRoom.Trim(), out rate, out tax, out descClean);
+                // rate is the daily rate for THIS room
+                txtRentPerNight.Text = rate.ToString("0"); 
+                txtTaxPercent.Text = tax.ToString("0");
+                hfRoomDescription.Value = sDesc.ToString();
+                txtOtherCharges.Text = GetPendingServiceCharges(resNo, selectedRoom.Trim()).ToString("0");
+
+                // Check if a bill already exists for THIS room
+                CheckExistingRoomBill(resNo, selectedRoom.Trim());
+            }
+            // ── Recalculate and Emit ──
+            ClientScript.RegisterStartupScript(GetType(), "calc", "calcBill();", true);
+        }
+
+        private void CheckExistingRoomBill(string resNo, string roomNo)
+        {
+            using (SqlConnection con = new SqlConnection(connStr))
+            {
+                string sql = "SELECT BillNo FROM GR_Bills WHERE ReservationNo = @Res AND RoomNo = @Room AND BillStatus NOT IN ('Settled', 'Refunded')";
+                using (SqlCommand cmd = new SqlCommand(sql, con))
+                {
+                    cmd.Parameters.AddWithValue("@Res", resNo);
+                    cmd.Parameters.AddWithValue("@Room", roomNo);
+                    con.Open();
+                    object billNo = cmd.ExecuteScalar();
+                    if (billNo != null)
+                    {
+                        lblBillNo.Text = billNo.ToString();
+                        LoadExistingBill(billNo.ToString(), con);
+                    }
+                    else
+                    {
+                        lblBillNo.Text = "NEW BILL";
+                    }
+                }
+            }
+        }
+
+        private void CalculateDetailedStay(string resNo, string roomNo, DateTime expectedToDate, out int roomCount, out double totalWeightedNights, out decimal totalRent, out StringBuilder description)
+        {
+            roomCount = 0;
+            totalWeightedNights = 0;
+            totalRent = 0;
+            description = new StringBuilder();
+
+            try
+            {
+                using (SqlConnection con = new SqlConnection(connStr))
+                {
+                    string sql = @"
+                        SELECT ra.RoomNo, ra.AllocatedDate, ra.CheckOutDate, ISNULL(ra.StayFactor, 1.0) as StayFactor, rd.Rent
+                        FROM RoomAllocations ra
+                        INNER JOIN RoomDefinitionNew rd ON ra.RoomNo = rd.RoomNo
+                        WHERE ra.ReservationNo = @ResNo";
+                    
+                    if (roomNo != "0") sql += " AND ra.RoomNo = @RoomNo";
+
+                    SqlCommand cmd = new SqlCommand(sql, con);
+                    cmd.Parameters.AddWithValue("@ResNo", resNo);
+                    if (roomNo != "0") cmd.Parameters.AddWithValue("@RoomNo", roomNo);
+
+                    con.Open();
+                    using (SqlDataReader dr = cmd.ExecuteReader())
+                    {
+                        while (dr.Read())
+                        {
+                            roomCount++;
+                            DateTime chkIn = Convert.ToDateTime(dr["AllocatedDate"]);
+                            DateTime chkOut = dr["CheckOutDate"] == DBNull.Value ? expectedToDate : Convert.ToDateTime(dr["CheckOutDate"]);
+                            double stayFactor = Convert.ToDouble(dr["StayFactor"]);
+
+                            int fullDays = (chkOut.Date - chkIn.Date).Days;
+                            double sNights = fullDays;
+
+                            if (stayFactor < 1.0) sNights += stayFactor;
+                            else if (sNights < 1) sNights = 1.0;
+
+                            decimal rate = Convert.ToDecimal(dr["Rent"]);
+                            totalRent += ((decimal)sNights * rate);
+                            totalWeightedNights += sNights;
+
+                            if (description.Length > 0) description.Append(", ");
+                            description.Append(dr["RoomNo"].ToString() + " (" + sNights + " nts)");
+                        }
+                    }
+                }
+            }
+            catch { }
+        }
+
+        private decimal GetPendingServiceCharges(string resNo, string roomNo)
+    {
+        decimal total = 0;
+        try
+        {
+            using (SqlConnection con = new SqlConnection(connStr))
+            {
+                // If roomNo is "0", sum for all rooms in reservation
+                string sql = "SELECT ISNULL(SUM(TotalAmount), 0) FROM GR_RoomServices WHERE ReservationNo = @Res AND Status = 'Pending'";
+                if (roomNo != "0")
+                {
+                    sql += " AND RoomNo = @Room";
+                }
+
+                SqlCommand cmd = new SqlCommand(sql, con);
+                cmd.Parameters.AddWithValue("@Res", resNo);
+                if (roomNo != "0") cmd.Parameters.AddWithValue("@Room", roomNo);
+
+                con.Open();
+                total = Convert.ToDecimal(cmd.ExecuteScalar());
+            }
+        }
+        catch { }
+        return total;
+    }
+
+    private void LoadExistingBill(string billNo, SqlConnection con)
+    {
+        // Ignore interim payment records for form populating (they shouldn't overwrite main state)
+        if (string.IsNullOrEmpty(billNo) || billNo.StartsWith("ADV-MID-")) return;
+
+        try
+        {
+            using (SqlCommand cmd = new SqlCommand("SELECT * FROM GR_Bills WHERE BillNo = @BillNo", con))
+            {
+                cmd.Parameters.AddWithValue("@BillNo", billNo);
+                using (SqlDataReader dr = cmd.ExecuteReader())
+                {
+                    if (dr.Read())
+                    {
+                        txtNoOfRooms.Text = dr["NoOfRooms"].ToString();
+                        txtNoOfNights.Text = dr["NoOfNights"].ToString();
+                        txtRentPerNight.Text = Convert.ToDecimal(dr["RoomRentPerNight"]).ToString("0");
+                        txtTaxPercent.Text = Convert.ToDecimal(dr["TaxPercent"]).ToString("0");
+                        txtOtherCharges.Text = Convert.ToDecimal(dr["OtherCharges"]).ToString("0");
+                        txtRemarks.Text = dr["Remarks"].ToString();
+
+                        decimal adv = Convert.ToDecimal(dr["AdvancePaid"]);
+                        decimal paid = Convert.ToDecimal(dr["AmountPaid"]);
+
+                        // If this is an interim payment record, treat the paid amount as a credit (Advance)
+                        if (billNo.StartsWith("ADV-MID-"))
+                        {
+                            txtAdvancePaid.Text = (adv + paid).ToString("0");
+                            txtManualPay.Text = "0"; // Reset manual field for settlements
+                        }
+                        else
+                        {
+                            txtAdvancePaid.Text = adv.ToString("0");
+                            txtManualPay.Text = paid.ToString("0");
+                        }
+                        if (dr["TotalRoomRent"] != DBNull.Value)
+                        {
+                            // Update descriptions for existing items
+                            hfRoomDescription.Value = dr["Remarks"].ToString();
+                        }
+                    }
+                }
+            }
+        }
+        catch { }
+    }
+
+    // SAVE BILL
+    protected void btnSaveBill_Click(object sender, EventArgs e)
+    {
+        if (string.IsNullOrEmpty(hfReservationNo.Value))
+        {
+            ShowMessage("Please search and load a reservation first.", false);
+            return;
+        }
+
+        // Validation: Only allow billing if at least one room is checked out OR status is Completed
+        if (!IsCheckoutAllowed(hfReservationNo.Value))
+        {
+            ShowMessage("Bill cannot be finalized until Room Checkout or Partial Checkout is processed.", false);
+            return;
+        }
+
+        try
+        {
+            decimal rentPerNight = ParseDecimal(txtRentPerNight.Text);
+            int rooms = ParseInt(txtNoOfRooms.Text);
+            int nights = ParseInt(txtNoOfNights.Text);
+            decimal taxPct = ParseDecimal(txtTaxPercent.Text);
+            decimal other = ParseDecimal(txtOtherCharges.Text);
+            decimal adv = ParseDecimal(txtAdvancePaid.Text);
+            decimal manual = ParseDecimal(txtManualPay.Text);
+
+            if (rooms <= 0 || nights <= 0 || rentPerNight <= 0)
+            {
+                ShowMessage("Please fill in Rooms, Nights, and Rent per Night.", false);
+                return;
+            }
+
+            using (SqlConnection con = new SqlConnection(connStr))
+            using (SqlCommand cmd = new SqlCommand("sp_GR_SaveBill", con))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@ReservationNo", hfReservationNo.Value);
+                cmd.Parameters.AddWithValue("@ReceiptNo", hfReceiptNo.Value);
+                cmd.Parameters.AddWithValue("@GuestName", lblGuestName.Text);
+                cmd.Parameters.AddWithValue("@GuestOf", lblGuestOf.Text);
+                cmd.Parameters.AddWithValue("@ClubName", lblClubName.Text == "—" ? "" : lblClubName.Text);
+                cmd.Parameters.AddWithValue("@FromDate", DateTime.Parse(lblFromDate.Text));
+                cmd.Parameters.AddWithValue("@ToDate", DateTime.Parse(lblToDate.Text));
+                cmd.Parameters.AddWithValue("@NoOfRooms", rooms);
+                cmd.Parameters.AddWithValue("@NoOfNights", nights);
+                cmd.Parameters.AddWithValue("@RoomRentPerNight", rentPerNight);
+                cmd.Parameters.AddWithValue("@TaxPercent", taxPct);
+                cmd.Parameters.AddWithValue("@OtherCharges", other);
+                cmd.Parameters.AddWithValue("@AdvancePaid", adv);
+                cmd.Parameters.AddWithValue("@AmountPaid", manual);
+                cmd.Parameters.AddWithValue("@Remarks", txtRemarks.Text.Trim());
+                cmd.Parameters.AddWithValue("@RoomNo", ddlBillRooms.SelectedValue); // PASS ROOM NO
+
+                SqlParameter pBillNo = new SqlParameter("@BillNo", SqlDbType.VarChar, 20) { Direction = ParameterDirection.Output };
+                SqlParameter pNet = new SqlParameter("@NetBalance", SqlDbType.Decimal) { Direction = ParameterDirection.Output };
+                SqlParameter pPayBack = new SqlParameter("@PayBack", SqlDbType.Decimal) { Direction = ParameterDirection.Output };
+                cmd.Parameters.Add(pBillNo); cmd.Parameters.Add(pNet); cmd.Parameters.Add(pPayBack);
+
+                con.Open();
+                cmd.ExecuteNonQuery();
+
+                string billNo = pBillNo.Value.ToString();
+                decimal netBal = Convert.ToDecimal(pNet.Value);
+                decimal payBack = Convert.ToDecimal(pPayBack.Value);
+
+                lblBillNo.Text = billNo;
+
+                // Calc derived values for receipt
+                decimal roomRent = rooms * nights * rentPerNight;
+                decimal tax = Math.Round(roomRent * taxPct / 100, 2);
+                decimal gross = roomRent + tax + other;
+
+                // Emit JS to populate receipt slip
+                string js = BuildReceiptScript(billNo, gross, roomRent, tax, other, adv, manual, netBal, payBack, ddlBillRooms.SelectedValue);
+                ClientScript.RegisterStartupScript(GetType(), "receipt", js, true);
+
+                LoadBillsHistory(null);
+
+                string statusMsg = netBal <= 0 && payBack == 0
+                    ? "Bill saved & settled! Services and Advance integrated."
+                    : payBack > 0
+                        ? "Bill saved! Pay back PKR " + payBack.ToString("N0") + " to guest."
+                        : "Bill saved! Amount due: PKR " + netBal.ToString("N0");
+
+                ShowMessage(statusMsg, true);
+            }
+        }
+        catch (Exception ex) { ShowMessage("Error saving bill: " + ex.Message, false); }
+    }
+
+    // POST INTERIM PAYMENT
+    protected void btnPostPayment_Click(object sender, EventArgs e)
+    {
+        if (string.IsNullOrEmpty(hfReservationNo.Value))
+        {
+            ShowMessage("Please search and load a reservation first.", false);
+            return;
+        }
+
+        decimal amount = ParseDecimal(txtInterimAmount.Text);
+        if (amount <= 0)
+        {
+            ShowMessage("Please enter a valid payment amount.", false);
+            return;
+        }
+
+        try
+        {
+            using (SqlConnection con = new SqlConnection(connStr))
+            {
+                // Generate a unique reference for the ledger
+                string billNo = "ADV-MID-" + DateTime.Now.ToString("yyyyMMddHHmm");
+                string remarks = "Mid-Stay Advance / Credit: " + txtInterimRemarks.Text.Trim();
+
+                // Direct SQL Insert to record the credit entry
+                // We set Rent/Rooms/Nights to 0 as this is purely a payment record
+                string qInsert = @"
+                    IF EXISTS (SELECT * FROM sys.tables WHERE name = 'GR_Bills')
+                    BEGIN
+                        INSERT INTO GR_Bills (
+                            BillNo, BillDate, ReservationNo, GuestName, GuestOf, ClubName, 
+                            FromDate, ToDate, NoOfRooms, NoOfNights, RoomRentPerNight, 
+                            TaxPercent, OtherCharges, AdvancePaid, AmountPaid, Remarks, BillStatus
+                        ) VALUES (
+                            @BillNo, GETDATE(), @ResNo, @Guest, @GuestOf, @Club, 
+                            @From, @To, @Rooms, @Nights, @Rent, @TaxPct, @Other, 0, @Amount, @Remarks, 'SETTLED'
+                        )
+                    END";
+
+                using (SqlCommand cmd = new SqlCommand(qInsert, con))
+                {
+                    cmd.Parameters.AddWithValue("@BillNo", billNo);
+                    cmd.Parameters.AddWithValue("@ResNo", hfReservationNo.Value);
+                    cmd.Parameters.AddWithValue("@Guest", lblGuestName.Text);
+                    cmd.Parameters.AddWithValue("@GuestOf", lblGuestOf.Text);
+                    cmd.Parameters.AddWithValue("@Club", lblClubName.Text == "—" ? "" : lblClubName.Text);
+                    cmd.Parameters.AddWithValue("@From", DateTime.Parse(lblFromDate.Text));
+                    cmd.Parameters.AddWithValue("@To", DateTime.Parse(lblToDate.Text));
+                    
+                    // Capture room context so description is not empty
+                    cmd.Parameters.AddWithValue("@Rooms", ParseInt(txtNoOfRooms.Text));
+                    cmd.Parameters.AddWithValue("@Nights", ParseInt(txtNoOfNights.Text));
+                    cmd.Parameters.AddWithValue("@Rent", ParseDecimal(txtRentPerNight.Text));
+                    cmd.Parameters.AddWithValue("@TaxPct", ParseDecimal(txtTaxPercent.Text));
+                    cmd.Parameters.AddWithValue("@Other", ParseDecimal(txtOtherCharges.Text));
+                    
+                    cmd.Parameters.AddWithValue("@Amount", amount);
+                    cmd.Parameters.AddWithValue("@Remarks", remarks);
+
+                    con.Open();
+                    cmd.ExecuteNonQuery();
+                }
+
+                ShowMessage("Interim Payment of PKR " + amount.ToString("N0") + " recorded successfully and added as credit to ledger.", true);
+                txtInterimAmount.Text = "";
+                txtInterimRemarks.Text = "";
+                
+                // Refresh UI stats immediately to show updated Advance Paid
+                LoadReservationDetails(hfReservationNo.Value);
+                
+                // Refresh history grid
+                LoadBillsHistory(null);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowMessage("Error recording payment: " + ex.Message, false);
+        }
+    }
+
+    // BUILD RECEIPT JS
+    private string BuildReceiptScript(string billNo, decimal gross, decimal roomRent,
+        decimal tax, decimal other, decimal adv, decimal manual, decimal netBal, decimal payBack, string roomNo)
+    {
+        var d = new StringBuilder();
+        d.Append("showReceipt({");
+        d.Append("billNo:'" + billNo + "',");
+        d.Append("date:'" + DateTime.Now.ToString("dd-MMM-yyyy hh:mm tt") + "',");
+        d.Append("guest:'" + Esc(lblGuestName.Text) + "',");
+        d.Append("guestOf:'" + Esc(lblGuestOf.Text) + "',");
+        d.Append("club:'" + Esc(lblClubName.Text) + "',");
+        d.Append("resNo:'" + Esc(hfReservationNo.Value) + "',");
+        d.Append("checkIn:'" + Esc(lblFromDate.Text) + "',");
+        d.Append("checkOut:'" + Esc(lblToDate.Text) + "',");
+        d.Append("rooms:'" + txtNoOfRooms.Text + "',");
+        d.Append("nights:'" + txtNoOfNights.Text + "',");
+        d.Append("roomNo:'" + (roomNo == "0" ? "All" : roomNo) + "',"); // PASS ROOM NO
+        d.Append("roomDesc:'" + Esc(hfRoomDescription.Value) + "',");
+        d.Append("roomRent:'" + roomRent.ToString("N0") + "',");
+        d.Append("tax:'" + tax.ToString("N0") + "',");
+        d.Append("other:'" + other.ToString("N0") + "',");
+        d.Append("gross:'" + gross.ToString("N0") + "',");
+        d.Append("advance:'" + adv.ToString("N0") + "',");
+        d.Append("manual:'" + manual.ToString("N0") + "',");
+        d.Append("balance:'" + netBal.ToString("N0") + "',");
+        d.Append("payback:'" + payBack.ToString("N0") + "'");
+        d.Append("});");
+        return d.ToString();
+    }
+
+        private string Esc(string s)
+        {
+            return (s ?? "").Replace("'", "\\'");
+        }
+
+        // LOAD BILLS HISTORY
+        private void LoadBillsHistory(string searchTerm)
+    {
+        try
+        {
+            using (SqlConnection con = new SqlConnection(connStr))
+            using (SqlCommand cmd = new SqlCommand("sp_GR_GetBills", con))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@SearchTerm", SqlDbType.VarChar, 50).Value =
+                    string.IsNullOrEmpty(searchTerm) ? (object)DBNull.Value : searchTerm;
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                con.Open();
+                da.Fill(dt);
+                gvBills.DataSource = dt;
+                gvBills.DataBind();
+                lblBillCount.Text = dt.Rows.Count.ToString();
+            }
+        }
+        catch { }
+    }
+
+    // GRID ROW COMMAND — Load Bill
+    protected void gvBills_RowCommand(object sender, GridViewCommandEventArgs e)
+    {
+        if (e.CommandName == "LoadBill")
+        {
+            txtSearchRes.Text = e.CommandArgument.ToString();
+            LoadReservationDetails(e.CommandArgument.ToString());
+        }
+    }
+
+    // CLEAR
+    protected void btnClear_Click(object sender, EventArgs e)
+    {
+        pnlBillForm.Visible = false;
+        hfReservationNo.Value = "";
+        hfReceiptNo.Value = "";
+        hfAdvancePaid.Value = "0";
+        txtSearchRes.Text = "";
+        lblBillNo.Text = "NEW BILL";
+    }
+
+    // BILL STATUS CHIP
+    protected string GetBillStatusChip(string status)
+    {
+        switch ((status ?? "").ToUpper())
+        {
+            case "SETTLED": return "status-chip chip-settled";
+            case "REFUNDED": return "status-chip chip-refund";
+            default: return "status-chip chip-draft";
+        }
+    }
+
+    private bool IsCheckoutAllowed(string resNo)
+    {
+        bool allowed = false;
+        try
+        {
+            using (SqlConnection con = new SqlConnection(connStr))
+            {
+                // Check if reservation is Completed OR if ANY room is checked out
+                string sql = @"
+                    SELECT 
+                        (SELECT Status FROM RoomReservations WHERE ReservationNo = @Res) as Status,
+                        (SELECT COUNT(*) FROM RoomAllocations WHERE ReservationNo = @Res AND CheckOutDate IS NOT NULL) as CheckedOutRooms";
+
+                using (SqlCommand cmd = new SqlCommand(sql, con))
+                {
+                    cmd.Parameters.AddWithValue("@Res", resNo);
+                    con.Open();
+                    using (SqlDataReader dr = cmd.ExecuteReader())
+                    {
+                        if (dr.Read())
+                        {
+                            string status = (dr["Status"] ?? "").ToString().ToUpper();
+                            int coRooms = dr["CheckedOutRooms"] == DBNull.Value ? 0 : Convert.ToInt32(dr["CheckedOutRooms"]);
+
+                            // "COMPLETED" is set by RoomCheckOut when all rooms are out
+                            // coRooms > 0 means at least one room has been checked out (Partial Checkout)
+                            if (status == "COMPLETED" || status == "CHECKOUT" || coRooms > 0)
+                            {
+                                allowed = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        catch { }
+        return allowed;
+    }
+
+    // HELPERS
+    private decimal ParseDecimal(string s) { decimal v; decimal.TryParse(s, out v); return v; }
+    private int ParseInt(string s) { int v; int.TryParse(s, out v); return v; }
+
+    private void FetchRoomRate(string roomNo, out decimal rent, out decimal tax, out string description)
+    {
+        rent = 0; tax = 16; description = "";
+        try
+        {
+            using (SqlConnection con = new SqlConnection(connStr))
+            {
+                // Use Trim to ensure matching even with whitespace
+                string sql = "SELECT TOP 1 Rent, TaxPercentage, Description FROM RoomDefinitionNew WHERE LTRIM(RTRIM(RoomNo)) = @Room";
+                using (SqlCommand cmd = new SqlCommand(sql, con))
+                {
+                    cmd.Parameters.AddWithValue("@Room", (roomNo ?? "").Trim());
+                    con.Open();
+                    using (SqlDataReader dr = cmd.ExecuteReader())
+                    {
+                        if (dr.Read())
+                        {
+                            rent = dr["Rent"] != DBNull.Value ? Convert.ToDecimal(dr["Rent"]) : 0;
+                            tax = dr["TaxPercentage"] != DBNull.Value ? Convert.ToDecimal(dr["TaxPercentage"]) : 16;
+                            description = dr["Description"] != DBNull.Value ? dr["Description"].ToString() : "";
+                        }
+                    }
+                }
+            }
+        }
+        catch { }
+    }
+
+    private void ShowMessage(string msg, bool success)
+    {
+        lblMessage.Text = msg;
+        lblMessage.CssClass = "alert show " + (success ? "alert-success" : "alert-error");
+        if (success)
+            ClientScript.RegisterStartupScript(GetType(), "HideMsg",
+                "setTimeout(function(){ var m=document.getElementById('" + lblMessage.ClientID + "'); if(m) m.style.display='none'; },6000);", true);
+    }
+}
+}
+
